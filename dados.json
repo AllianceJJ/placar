@@ -1,0 +1,16 @@
+{
+  "versao": 1,
+  "atualizadoEm": null,
+  "teto": 350,
+  "horizonte": 12,
+  "metas": {
+    "churnBom": 4, "churnLim": 6,
+    "crescBom": 2, "crescLim": 0,
+    "noShowBom": 20, "noShowLim": 35,
+    "convBom": 60, "convLim": 40,
+    "inadBom": 3, "inadLim": 6,
+    "ticketMeta": 0
+  },
+  "cenarios": null,
+  "meses": []
+}
