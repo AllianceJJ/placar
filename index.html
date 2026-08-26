@@ -512,10 +512,14 @@ function derivar(m, anterior){
   d.contratosAluno = div(m.contratos, m.alunos);
   d.noShow    = m.agendadas>0 ? (1 - (m.realizadas||0)/m.agendadas)*100 : null;
   d.compPct   = m.agendadas>0 ? (m.realizadas||0)/m.agendadas*100 : null;
-  d.convExp   = m.realizadas>0 ? (m.matriculas||0)/m.realizadas*100 : null;
+  /* a matricula do funil e a pessoa que fez a experimental e hoje esta com plano ativo.
+     Nao e novos + retornos: quem entra por indicacao direta, sem experimental, nao passa
+     por aqui. Mes lancado na mao, sem esse campo, cai no numero antigo. */
+  d.matriculasFunil = (m.matriculasExp!=null) ? m.matriculasExp : (m.matriculas||0);
+  d.convExp   = m.realizadas>0 ? (d.matriculasFunil||0)/m.realizadas*100 : null;
   d.convLead  = m.leads>0 ? (m.agendadas||0)/m.leads*100 : null;
-  d.convTotal = m.leads>0 ? (m.matriculas||0)/m.leads*100 : null;
-  d.cac       = div(m.invMkt, m.matriculas);
+  d.convTotal = m.leads>0 ? (d.matriculasFunil||0)/m.leads*100 : null;
+  d.cac       = div(m.invMkt, d.matriculasFunil);
   d.inadPct   = div(m.valorInad, m.mrr); if(d.inadPct!=null) d.inadPct*=100;
   d.receitaPerdida = (d.ticket!=null) ? d.ticket*(m.cancelamentos||0) : null;
   d.fecha = (ini!=null) ? (ini + (m.novos||0) + (m.retornos||0) - (m.cancelamentos||0)) === m.alunos : null;
@@ -689,7 +693,7 @@ function blocoFunil(d, metas){
     {k:'Contatos / leads', v:d.leads, c:'var(--f1)', t:'#0b2545'},
     {k:'Experimentais agendadas', v:d.agendadas, c:'var(--f2)', t:'#0b2545'},
     {k:'Experimentais realizadas', v:d.realizadas, c:'var(--f3)', t:'#ffffff'},
-    {k:'Matrículas', v:d.matriculas, c:'var(--f4)', t:'#ffffff'}
+    {k:'Matrículas vindas da experimental', v:d.matriculasFunil, c:'var(--f4)', t:'#ffffff'}
   ];
   const max = Math.max(1, ...etapas.map(e=>+e.v||0));
   const taxas = [
@@ -709,7 +713,7 @@ function blocoFunil(d, metas){
   const fd = ((dados()||{}).detalhe||{}).funil_diagnostico;
   if(fd && fd.sem_registro_de_experimental){
     html += '<div class="alerta" style="margin-top:16px"><b>Nenhuma aula introdutória foi encontrada no período.</b> '
-      + 'Foram consultados '+N(fd.leads_consultados)+' leads e nenhum tinha sessão marcada na agenda. '
+      + 'Foram consultadas '+N(fd.pessoas_consultadas)+' pessoas, entre leads e alunos recentes, e nenhuma tinha sessão marcada na agenda. '
       + 'Ou não houve introdutória mesmo, ou ela foi dada sem estar agendada no EVO — nesse caso o funil mede menos do que aconteceu.</div>';
   }
 
@@ -718,10 +722,15 @@ function blocoFunil(d, metas){
   html += '<div class="tiles" style="margin-top:18px">'
     + tile('No-show da experimental', P(d.noShow), sNS, chip(sNS)+'<span>'+N((d.agendadas||0)-(d.realizadas||0))+' não apareceram</span>')
     + (fd && fd.no_mes ? tile('Faltas registradas', N(fd.no_mes.faltas), 'mute', '<span>marcadas como falta na agenda do EVO</span>') : '')
+    + (fd && fd.complementares_no_mes ? tile('Aulas complementares', N(fd.complementares_no_mes), 'mute', '<span>aula 2 e 3 da metodologia, fora do funil</span>') : '')
     + tile('Conversão da experimental', P(d.convExp), sCv, chip(sCv)+'<span>média da casa</span>')
     + tile('Conversão de ponta a ponta', P(d.convTotal), 'mute', '<span>do primeiro contato à matrícula</span>')
     + tile('Custo por matrícula', RS2(d.cac), 'mute', '<span>investimento ÷ matrículas</span>')
     + '</div>';
+  const fora = (d.matriculas||0) - (d.matriculasFunil||0);
+  if(fora > 0) html += '<p class="note" style="margin-top:12px">O mês fechou com <b>'+N(d.matriculas)+'</b> entradas (novos + retornos), '
+    + 'mas só <b>'+N(d.matriculasFunil)+'</b> passaram pela aula experimental. As outras <b>'+N(fora)+'</b> entraram direto — '
+    + 'indicação, retorno de ex-aluno ou matrícula de balcão. O funil mede só a porta da experimental.</p>';
   return html;
 }
 
@@ -919,6 +928,152 @@ function tabelaVendas(titulo, nota, lista){
     + '</tbody></table></div></div>';
 }
 
+/* ============ churn ============ */
+const dataBr = s => { const p = String(s||'').slice(0,10).split('-'); return p.length===3 ? p[2]+'/'+p[1]+'/'+p[0] : '—'; };
+
+function grafBarrasMes(serie, cor, fmt, titulo){
+  if(!serie || !serie.length) return '<div class="empty" style="padding:26px">Ainda não há dados.</div>';
+  const W=560, H=200, ml=44, mr=14, mt=14, mb=30;
+  const max = Math.max(1, ...serie.map(x=>x.v||0));
+  const iw=W-ml-mr, ih=H-mt-mb;
+  const passoX = iw/serie.length, larg = Math.min(30, passoX*0.6);
+  let g='', barras='';
+  [max, max/2, 0].forEach(t=>{
+    const y = mt+ih - (t/max)*ih;
+    g += '<line x1="'+ml+'" x2="'+(W-mr)+'" y1="'+y.toFixed(1)+'" y2="'+y.toFixed(1)+'" stroke="'+(t===0?'var(--axis)':'var(--grid)')+'" stroke-width="1"/>';
+    g += '<text x="'+(ml-8)+'" y="'+(y+4).toFixed(1)+'" text-anchor="end" font-size="10.5" fill="var(--ink-3)">'+N(Math.round(t))+'</text>';
+  });
+  serie.forEach((x,i)=>{
+    const cx = ml + passoX*(i+0.5);
+    const h = (x.v||0)/max*ih;
+    barras += '<rect x="'+(cx-larg/2).toFixed(1)+'" y="'+(mt+ih-h).toFixed(1)+'" width="'+larg.toFixed(1)+'" height="'+Math.max(0,h).toFixed(1)+'" rx="4" fill="'+cor+'"'
+      + ' data-tip="'+esc('<b>'+fmt(x.v)+'</b><br>'+rotuloLongo(x.m)+(x.extra?'<br>'+x.extra:''))+'"/>';
+    if(i%Math.ceil(serie.length/7)===0 || i===serie.length-1)
+      barras += '<text x="'+cx.toFixed(1)+'" y="'+(H-8)+'" text-anchor="middle" font-size="10.5" fill="var(--ink-3)">'+rotulo(x.m)+'</text>';
+  });
+  return '<div class="chartbox"><svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+esc(titulo)+'">'+g+barras+'</svg></div>';
+}
+
+function blocoChurn(){
+  const ch = ((dados()||{}).detalhe||{}).churn;
+  if(!ch || !ch.total) return '';
+  const serie = (ch.serie_mensal||[]).map(x=>({m:x.mes, v:x.cancelamentos, extra:RS(x.valor_perdido)+' de contrato cancelado'}));
+  const motivos = Object.keys(ch.motivos||{}).map(k=>({nome:k, v:ch.motivos[k]})).sort((a,b)=>b.v-a.v);
+  const totMot = motivos.reduce((s,x)=>s+x.v,0);
+  const top = motivos[0];
+  const fin = motivos.filter(m=>/financeir/i.test(m.nome)).reduce((s,m)=>s+m.v,0);
+  const tempo = motivos.filter(m=>/tempo|frequenta/i.test(m.nome)).reduce((s,m)=>s+m.v,0);
+  const troca = motivos.filter(m=>/trocar/i.test(m.nome)).reduce((s,m)=>s+m.v,0);
+
+  let h = '<div class="tiles">'
+    + tile('Cancelamentos em 12 meses', N(ch.total), 'mute', '<span>média de '+(ch.media_por_mes!=null?nf1.format(ch.media_por_mes):'—')+' por mês</span>')
+    + tile('Contrato cancelado', RS(ch.perda_total), 'mute', '<span>valor dos contratos que saíram</span>')
+    + tile('Pior mês', ch.pior_mes ? rotuloLongo(ch.pior_mes.mes) : '—', 'warn', '<span>'+(ch.pior_mes?N(ch.pior_mes.cancelamentos)+' cancelamentos':'')+'</span>')
+    + tile('Motivo número 1', top?esc(top.nome):'—', 'mute', '<span>'+(top?N(top.v)+' saídas · '+P(top.v/totMot*100):'')+'</span>')
+    + '</div>';
+
+  h += '<div class="card" style="margin-top:14px"><h3>Cancelamentos mês a mês</h3>'
+    + '<p class="note">Doze meses de saídas, direto do registro de cancelamento do EVO. A barra é gente; passe o mouse para ver o valor de contrato que saiu junto.</p>'
+    + grafBarrasMes(serie, 'var(--sneg)', v=>nf0.format(v)+' cancelamentos', 'Cancelamentos por mês')
+    + '</div>';
+
+  h += '<div class="grid2" style="margin-top:14px">'
+    + '<div class="card"><h3>Por que saem</h3>'
+      + '<p class="note">Motivo registrado no cancelamento. Só serve se a equipe preencher com honestidade — "outros" alto significa registro preguiçoso, não motivo desconhecido.</p>'
+      + barrasSimples(motivos, v=>nf0.format(v), 'var(--sneg)') + '</div>'
+    + '<div class="card"><h3>Onde dói</h3>'
+      + '<p class="note">Os três grupos que respondem por quase todo o churn — e cada um tem uma ação diferente.</p>'
+      + '<div class="tbl-wrap"><table><thead><tr><th>Grupo</th><th>Saídas</th><th>Peso</th><th class="wrap">O que fazer</th></tr></thead><tbody>'
+      + '<tr><td>Preço / financeiro</td><td>'+N(fin)+'</td><td>'+P(totMot?fin/totMot*100:0)+'</td><td class="note wrap">Plano mais barato antes do cancelamento, não depois. Downgrade retém melhor que desconto.</td></tr>'
+      + '<tr><td>Falta de tempo / sumiu</td><td>'+N(tempo)+'</td><td>'+P(totMot?tempo/totMot*100:0)+'</td><td class="note wrap">É frequência, não agenda. O radar de 14 dias sem treinar é o gatilho — ligar antes de virar cancelamento.</td></tr>'
+      + '<tr><td>Troca de contrato</td><td>'+N(troca)+'</td><td>'+P(totMot?troca/totMot*100:0)+'</td><td class="note wrap">Não é saída de verdade: é migração de plano. Vale separar do churn nas metas.</td></tr>'
+      + '</tbody></table></div></div>'
+    + '</div>';
+
+  if((ch.por_plano||[]).length) h += '<div class="card" style="margin-top:14px"><h3>Quais planos perdem gente</h3>'
+    + '<p class="note">Cancelamentos por plano em 12 meses. Plano com muita saída e pouca base é plano com problema de encaixe, não de aluno.</p>'
+    + '<div class="tbl-wrap"><table><thead><tr><th>Plano</th><th>Cancelamentos</th><th>Contrato cancelado</th></tr></thead><tbody>'
+    + ch.por_plano.slice(0,14).map(p=>'<tr><td>'+esc(p.plano)+'</td><td>'+N(p.cancelamentos)+'</td><td>'+RS(p.valor)+'</td></tr>').join('')
+    + '</tbody></table></div></div>';
+
+  if((ch.lista||[]).length) h += '<div class="card" style="margin-top:14px"><h3>Quem saiu</h3>'
+    + '<p class="note">Os cancelamentos mais recentes, com nome, data, plano e motivo. Tempo de contrato é o ciclo vigente quando cancelou — em plano recorrente mensal isso reinicia todo mês, então não leia como tempo de casa.</p>'
+    + '<div class="tbl-wrap"><table><thead><tr><th>Aluno</th><th>Data</th><th class="wrap">Plano</th><th class="wrap">Motivo</th><th>Valor</th><th>Multa</th></tr></thead><tbody>'
+    + ch.lista.slice(0,40).map(c=>'<tr><td>'+esc(c.aluno)+'</td><td>'+esc(dataBr(c.data))+'</td>'
+        + '<td class="note wrap">'+esc(c.plano)+'</td><td class="note wrap">'+esc(c.motivo)+'</td>'
+        + '<td>'+RS(c.valor)+'</td><td>'+(c.multa>0?RS(c.multa):'—')+'</td></tr>').join('')
+    + '</tbody></table></div></div>';
+
+  h += '<div class="alerta" style="margin-top:14px"><b>Duas coisas que a API da EVO não entrega.</b> '
+    + 'Quem registrou o cancelamento não vem no registro — o EVO guarda aluno, data, plano, motivo e multa, sem o funcionário. '
+    + 'E a lista de suspensos com data de regresso também não: o status de contrato só aceita ativo e cancelado, e nenhuma rota de bloqueio ou congelamento responde. '
+    + 'Enquanto isso não abrir, essas duas leituras saem do painel da EVO na mão.</div>';
+  return h;
+}
+
+/* ============ planos vendidos no mês ============ */
+function blocoPlanosVendidos(){
+  const pv = ((dados()||{}).detalhe||{}).planos_vendidos || [];
+  if(!pv.length) return '';
+  const novas = pv.reduce((s,x)=>s+(x.novas||0),0);
+  const renov = pv.reduce((s,x)=>s+(x.renovacoes||0),0);
+  const receita = pv.reduce((s,x)=>s+(x.receita||0),0);
+  const comNovas = pv.filter(x=>x.novas>0).sort((a,b)=>b.novas-a.novas);
+  const campeao = comNovas[0];
+
+  let h = '<div class="tiles" style="margin-top:14px">'
+    + tile('Contratos novos no mês', N(novas), 'mute', '<span>primeira assinatura, não renovação</span>')
+    + tile('Renovações', N(renov), 'mute', '<span>cobrança recorrente do mês</span>')
+    + tile('Plano mais vendido', campeao?esc(campeao.nome):'—', 'mute', '<span>'+(campeao?N(campeao.novas)+' contratos novos':'')+'</span>')
+    + tile('Receita contratada no mês', RS(receita), 'mute', '<span>novos + renovações</span>')
+    + '</div>';
+
+  if(comNovas.length) h += '<div class="card" style="margin-top:14px"><h3>O que está vendendo agora</h3>'
+    + '<p class="note">Só contratos novos. É a leitura de demanda do mês — diferente do mix, que mostra onde a base parou historicamente.</p>'
+    + barrasSimples(comNovas.map(x=>({nome:x.nome, v:x.novas})), v=>nf0.format(v)+' novos', 'var(--s1)')
+    + '</div>';
+
+  h += '<div class="card" style="margin-top:14px"><h3>Planos vendidos no mês</h3>'
+    + '<p class="note">Cada linha soma o que o EVO registrou como venda daquele plano no mês, separando primeira assinatura de renovação.</p>'
+    + '<div class="tbl-wrap"><table><thead><tr><th>Plano</th><th>Novos</th><th>Renovações</th><th>Total</th><th>Receita</th><th>Ticket</th></tr></thead><tbody>'
+    + pv.map(x=>'<tr><td>'+esc(x.nome)+'</td><td>'+(x.novas>0?'<b>'+N(x.novas)+'</b>':'—')+'</td><td>'+N(x.renovacoes)+'</td>'
+        + '<td>'+N(x.vendas)+'</td><td>'+RS(x.receita)+'</td><td>'+(x.vendas>0?RS2(x.receita/x.vendas):'—')+'</td></tr>').join('')
+    + '<tr style="font-weight:700;background:var(--surface-2)"><td>Total</td><td>'+N(novas)+'</td><td>'+N(renov)+'</td>'
+    + '<td>'+N(novas+renov)+'</td><td>'+RS(receita)+'</td><td></td></tr>'
+    + '</tbody></table></div></div>';
+  return h;
+}
+
+/* ============ movimentação de caixa ============ */
+function blocoCaixa(){
+  const det = (dados()||{}).detalhe||{};
+  const cx = det.caixa_do_mes;
+  if(!cx) return '';
+  const cats = (det.avulsos_do_mes||{}).categorias || [];
+  let h = '<div class="tiles">'
+    + tile('Movimentado no mês', RS(cx.total_movimentado), 'mute', '<span>tudo que a EVO registrou como venda</span>')
+    + tile('Planos', RS(cx.planos_vendidos_no_mes), 'mute', '<span>novos + renovações</span>')
+    + tile('Serviços e produtos', RS(cx.servicos_e_produtos), 'mute', '<span>'+P(cx.pct_fora_do_recorrente)+' do movimento</span>')
+    + tile('Recorrente contratado', RS(cx.recorrente_contratado), 'mute', '<span>base de cobrança do mês</span>')
+    + '</div>';
+  if(cats.length){
+    const tot = cats.reduce((s,c)=>s+(c.receita||0),0);
+    h += '<div class="card" style="margin-top:14px"><h3>De onde vem o dinheiro fora do plano</h3>'
+      + '<p class="note">Categorias separadas por tipo de item na venda. Aluguel de kimono, aula avulsa, personal e exame de faixa entram aqui — é caixa que não aparece no MRR e por isso costuma passar despercebido.</p>'
+      + '<div class="tbl-wrap"><table><thead><tr><th>Categoria</th><th>Vendas</th><th>Receita</th><th>Peso</th><th class="wrap">Itens</th></tr></thead><tbody>'
+      + cats.map(c=>'<tr><td>'+esc(c.categoria)+'</td><td>'+N(c.vendas)+'</td><td>'+RS(c.receita)+'</td>'
+          + '<td>'+P(tot?c.receita/tot*100:0)+'</td>'
+          + '<td class="note wrap">'+esc((c.itens||[]).map(i=>i.nome).join(', '))+'</td></tr>').join('')
+      + '<tr style="font-weight:700;background:var(--surface-2)"><td>Total</td>'
+      + '<td>'+N(cats.reduce((s,c)=>s+(c.vendas||0),0))+'</td><td>'+RS(tot)+'</td><td></td><td></td></tr>'
+      + '</tbody></table></div></div>';
+  }
+  const faltando = ['Aluguel de kimono','Aula avulsa','Aula particular (personal)'].filter(k=>!cats.some(c=>c.categoria===k));
+  if(faltando.length) h += '<div class="alerta" style="margin-top:14px"><b>Sem registro de '+esc(faltando.join(', ').toLowerCase())+' neste mês.</b> '
+    + 'Ou não houve venda, ou a cobrança saiu por fora do EVO. Se saiu por fora, o painel está vendo menos caixa do que a escola fez — e o acerto do professor também.</div>';
+  return h;
+}
+
 function blocoServicos(d){
   const det = (dados()||{}).detalhe||{};
   const sv = det.servicos_avulsos || d.servicos || [];
@@ -945,28 +1100,44 @@ function blocoFolha(d){
   const av = det.avulsos_do_mes || {};
   if(!f.length) return '';
   const vAula = valorAula();
-  const linhas = f.map(p=>({...p, valor: p.aulas*vAula}));
+  const linhas = f.map(p=>({...p, complementares: p.complementares||0, valor: p.aulas*vAula}));
   const totAulas = linhas.reduce((s,p)=>s+p.aulas,0);
   const totIntro = linhas.reduce((s,p)=>s+p.introdutorias,0);
+  const totComp  = linhas.reduce((s,p)=>s+p.complementares,0);
   const totValor = totAulas*vAula;
 
   let h = '<div class="tiles">'
     + tile('Aulas a pagar no mês', N(totAulas), 'mute', '<span>'+N(det.sessoes_no_mes||totAulas)+' sessões na grade</span>')
     + tile('Valor por aula', RS2(vAula), 'mute', '<button class="btn btn-sm" data-acao="editvaloraula">Ajustar</button>')
-    + tile('Total da folha de aulas', RS(totValor), 'mute', '<span>coletivas + introdutórias</span>')
-    + tile('Introdutórias no mês', N(totIntro), totIntro>0?'mute':'warn', '<span>'+(totIntro>0?'lançadas na grade':'nenhuma lançada na grade')+'</span>')
+    + tile('Total da folha de aulas', RS(totValor), 'mute', '<span>coletivas + introdutórias + complementares</span>')
+    + tile('Introdutórias no mês', N(totIntro), totIntro>0?'mute':'warn', '<span>'+(totIntro>0?'primeiro contato, entram no funil':'nenhuma lançada na grade')+'</span>')
+    + tile('Complementares no mês', N(totComp), 'mute', '<span>aula 2 e 3 da metodologia, fora do funil</span>')
     + '</div>';
 
   h += '<div class="card" style="margin-top:14px"><h3>Fechamento por professor</h3>'
-    + '<p class="note">Cada linha é a contagem de sessões que a grade do EVO registra no mês, com o professor atribuído. Confira contra a escala antes de pagar — o painel conta o que está lançado, não o que foi combinado.</p>'
-    + '<div class="tbl-wrap"><table><thead><tr><th>Professor</th><th>Coletivas</th><th>Introdutórias</th><th>Total de aulas</th><th>Presenças</th><th>A pagar</th></tr></thead><tbody>'
-    + linhas.map(p=>'<tr><td>'+esc(p.professor)+'</td><td>'+N(p.coletivas)+'</td><td>'+N(p.introdutorias)+'</td>'
+    + '<p class="note">Cada linha é a contagem de sessões que a grade do EVO registra no mês, com o professor atribuído. Introdutória é a aula de primeiro contato; complementar é a aula 2 e a aula 3 da metodologia, dadas para quem já matriculou. As duas se pagam pelo mesmo valor — a diferença é que só a primeira conta como funil. Confira contra a escala antes de pagar: o painel conta o que está lançado, não o que foi combinado.</p>'
+    + '<div class="tbl-wrap"><table><thead><tr><th>Professor</th><th>Coletivas</th><th>Introdutórias</th><th>Complementares</th><th>Total de aulas</th><th>Presenças</th><th>A pagar</th></tr></thead><tbody>'
+    + linhas.map(p=>'<tr><td>'+esc(p.professor)+'</td><td>'+N(p.coletivas)+'</td><td>'+N(p.introdutorias)+'</td><td>'+N(p.complementares)+'</td>'
         + '<td>'+N(p.aulas)+'</td><td>'+N(p.presencas)+'</td><td><b>'+RS2(p.valor)+'</b></td></tr>').join('')
     + '<tr style="font-weight:700;background:var(--surface-2)"><td>Total</td>'
-    + '<td>'+N(linhas.reduce((s,p)=>s+p.coletivas,0))+'</td><td>'+N(totIntro)+'</td><td>'+N(totAulas)+'</td>'
+    + '<td>'+N(linhas.reduce((s,p)=>s+p.coletivas,0))+'</td><td>'+N(totIntro)+'</td><td>'+N(totComp)+'</td><td>'+N(totAulas)+'</td>'
     + '<td>'+N(linhas.reduce((s,p)=>s+p.presencas,0))+'</td><td>'+RS2(totValor)+'</td></tr>'
     + '</tbody></table></div></div>';
 
+  const semDono = linhas.filter(p=>/alliance/i.test(p.professor) || /sem professor/i.test(p.professor));
+  if(semDono.length){
+    const q = semDono.reduce((s,p)=>s+p.aulas,0);
+    h += '<div class="alerta" style="margin-top:14px"><b>'+N(q)+' '+(q===1?'aula lançada sem professor':'aulas lançadas sem professor')+'.</b> '
+      + 'Quando o instrutor fica em branco no EVO, a aula cai no nome da conta da academia e o valor não tem dono no acerto. '
+      + 'Corrija o lançamento no EVO e o painel realoca sozinho na próxima coleta.</div>';
+  }
+  const dg = ((dados()||{}).diagnostico)||{};
+  if(dg.dias_de_grade_pedidos && dg.dias_de_grade_lidos < dg.dias_de_grade_pedidos){
+    const faltam = dg.dias_de_grade_pedidos - dg.dias_de_grade_lidos;
+    h += '<div class="alerta" style="margin-top:14px"><b>'+N(faltam)+' '+(faltam===1?'dia de grade não veio na coleta':'dias de grade não vieram na coleta')+'.</b> '
+      + 'A EVO limita quantas consultas aceita por minuto e recusou '+(faltam===1?'essa':'essas')+'. '
+      + 'As aulas desse dia não entraram na contagem — o total a pagar está subestimado em até '+RS2(faltam*8*vAula)+'. Rodar o relatório de novo costuma resolver.</div>';
+  }
   const temAvulso = (av.exames_vendidos||0) + (av.particulares_avulsas||0) + (av.alunos_personal_recorrente||0) > 0;
   if(temAvulso){
     h += '<div class="card" style="margin-top:14px"><h3>A ratear na mão</h3>'
@@ -1657,6 +1828,11 @@ function render(){
       + grafLinha(ate.map(x=>({m:x.mes, v:x.alunos})), 'var(--s1)', 'var(--s1-soft)', v=>nf0.format(v), 'Alunos ativos por mês') + '</div>'
     + '</div></section>';
 
+  const hChurn = blocoChurn();
+  if(hChurn) h += '<section><div class="shead"><span class="eyebrow">Retenção</span><h2>Mapeamento de cancelamento</h2></div>'
+    + '<p class="sub">Doze meses de saídas: quem saiu, quando, de qual plano e por quê. Cancelamento não é evento isolado — é o fim de uma série de sinais que o painel mostra antes.</p>'
+    + hChurn + '</section>';
+
   h += '<section><div class="shead"><span class="eyebrow">Comercial</span><h2>Funil da aula experimental</h2></div>'
     + '<p class="sub">Quando a matrícula cai, o funil diz onde: menos gente chegando, gente que não aparece, ou experimental que não fecha. São três donos diferentes.</p>'
     + '<div class="card">' + blocoFunil(d, metas) + '</div>'
@@ -1670,7 +1846,7 @@ function render(){
 
   h += '<section><div class="shead"><span class="eyebrow">Planos</span><h2>Mix de planos</h2></div>'
     + '<p class="sub">Onde a base está concentrada, o que está vendendo agora e de onde a receita realmente vem. Migração entre planos aparece aqui antes de aparecer no ticket médio.</p>'
-    + blocoPlanos(d) + '</section>';
+    + blocoPlanos(d) + blocoPlanosVendidos() + '</section>';
 
   const hGrade = blocoGrade();
   if(hGrade) h += '<section><div class="shead"><span class="eyebrow">Grade</span><h2>Aulas e professores na semana</h2></div>'
@@ -1686,6 +1862,11 @@ function render(){
   if(hServ) h += '<section><div class="shead"><span class="eyebrow">Avulsos</span><h2>Serviços e produtos</h2></div>'
     + '<p class="sub">Tudo que a base compra fora do plano. É receita que não aparece no MRR e por isso costuma passar despercebida.</p>'
     + hServ + '</section>';
+
+  const hCaixa = blocoCaixa();
+  if(hCaixa) h += '<section><div class="shead"><span class="eyebrow">Caixa</span><h2>Movimentação financeira do mês</h2></div>'
+    + '<p class="sub">Tudo que a EVO registrou como venda no mês, separado entre plano e o resto. O recorrente contratado é outra conta: é o que a base deve pagar, não o que passou pelo caixa.</p>'
+    + hCaixa + '</section>';
 
   h += '<section><div class="shead"><span class="eyebrow">Financeiro</span><h2>Receita e inadimplência</h2></div>'
     + '<p class="sub">Crescer em aluno sem crescer em receita é sinal de mix de plano caindo. Por isso ticket médio anda junto com número de alunos.</p>'
