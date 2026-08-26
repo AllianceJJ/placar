@@ -499,6 +499,52 @@ const dados = () => demo ? demo : state;
 const tetoAtual = () => { const t = dados().teto; return (t!=null && isFinite(+t) && +t>0) ? +t : 350; };
 const valorAula = () => { const v = dados().valorAula; return (v!=null && isFinite(+v) && +v>0) ? +v : 30; };
 
+
+/* ============ histórico reconstruído (2020–2026) ============
+   A EVO não guarda a base de alunos de um mês passado, mas guarda todos os contratos com
+   data de início e de fim. Varrendo os 9.525 contratos da escola desde 2020, um aluno conta
+   como ativo num mês se tinha contrato de pé naquele mês — fora VIP e fora cortesia, a mesma
+   regra de hoje. Daí saem base, novos (primeiro contrato da vida), retornos (voltou depois de
+   um intervalo) e saídas (deixou de ter contrato, tendo cancelado formalmente ou apenas
+   deixado vencer). A conta fecha mês a mês: base = base anterior + novos + retornos − saídas.
+   Receita não entra: o valor do contrato na EVO é o valor cheio, não a mensalidade, então
+   somá-lo daria um MRR falso. Os meses reconstruídos aparecem marcados na tabela. */
+const HISTORICO = [
+  ["2020-03",4,4,0,0],["2020-04",4,0,0,0],["2020-05",4,0,0,0],["2020-06",15,11,0,0],
+  ["2020-07",24,9,0,0],["2020-08",26,5,0,3],["2020-09",33,8,0,1],["2020-10",35,4,0,2],
+  ["2020-11",41,7,0,1],["2020-12",44,5,1,3],["2021-01",52,12,0,4],["2021-02",58,7,0,1],
+  ["2021-03",62,4,0,0],["2021-04",62,2,0,2],["2021-05",66,4,1,1],["2021-06",67,3,0,2],
+  ["2021-07",71,5,0,1],["2021-08",82,13,1,3],["2021-09",90,10,0,2],["2021-10",83,4,0,11],
+  ["2021-11",86,7,3,7],["2021-12",85,2,0,3],["2022-01",92,13,2,8],["2022-02",91,10,3,14],
+  ["2022-03",93,7,1,6],["2022-04",94,7,1,7],["2022-05",99,9,1,5],["2022-06",105,10,0,4],
+  ["2022-07",104,3,3,7],["2022-08",110,14,1,9],["2022-09",106,5,1,10],["2022-10",112,14,1,9],
+  ["2022-11",110,9,1,12],["2022-12",110,5,1,6],["2023-01",117,13,2,8],["2023-02",117,6,1,7],
+  ["2023-03",116,11,2,14],["2023-04",121,8,1,4],["2023-05",128,10,1,4],["2023-06",131,8,0,5],
+  ["2023-07",130,8,0,9],["2023-08",135,8,3,6],["2023-09",131,3,1,8],["2023-10",132,8,1,8],
+  ["2023-11",132,6,0,6],["2023-12",129,5,0,8],["2024-01",137,10,1,3],["2024-02",140,9,0,6],
+  ["2024-03",139,5,1,7],["2024-04",142,6,2,5],["2024-05",140,5,3,10],["2024-06",141,12,1,12],
+  ["2024-07",145,6,3,5],["2024-08",146,7,3,9],["2024-09",153,12,1,6],["2024-10",154,3,2,4],
+  ["2024-11",157,8,1,6],["2024-12",151,1,0,7],["2025-01",172,25,4,8],["2025-02",172,12,0,12],
+  ["2025-03",171,8,1,10],["2025-04",174,8,1,6],["2025-05",182,15,1,8],["2025-06",178,8,1,13],
+  ["2025-07",187,10,2,3],["2025-08",197,15,3,8],["2025-09",206,17,0,8],["2025-10",209,17,0,14],
+  ["2025-11",220,12,4,5],["2025-12",229,13,2,6],["2026-01",247,21,3,6],["2026-02",267,24,5,9],
+  ["2026-03",268,13,3,15],["2026-04",275,21,0,14],["2026-05",273,9,0,11],["2026-06",274,15,1,15],
+  ["2026-07",279,17,1,13],["2026-08",283,11,0,7]
+];
+
+function semearHistorico(meses){
+  const tem = {}; for(const m of meses) tem[m.mes] = 1;
+  const novos = [];
+  for(const [mes, alunos, n, r, s] of HISTORICO){
+    if(tem[mes]) continue;
+    novos.push({ mes, historico:true, alunos, novos:n, retornos:r, cancelamentos:s,
+      contratos:null, mrr:null, leads:null, agendadas:null, realizadas:null, matriculas:null,
+      inadimplentes:null, valorInad:null, invMkt:0, professores:[], planos:[] });
+  }
+  if(!novos.length) return meses;
+  return meses.concat(novos).sort((a,b)=>a.mes.localeCompare(b.mes));
+}
+
 /* ============ cálculos ============ */
 function derivar(m, anterior){
   const d = {...m};
@@ -522,12 +568,17 @@ function derivar(m, anterior){
   d.cac       = div(m.invMkt, d.matriculasFunil);
   d.inadPct   = div(m.valorInad, m.mrr); if(d.inadPct!=null) d.inadPct*=100;
   d.receitaPerdida = (d.ticket!=null) ? d.ticket*(m.cancelamentos||0) : null;
-  d.fecha = (ini!=null) ? (ini + (m.novos||0) + (m.retornos||0) - (m.cancelamentos||0)) === m.alunos : null;
+  d.historico = !!m.historico;
+  /* na virada do mes reconstruido para o mes medido ao vivo as duas contagens divergem um
+     pouco (a reconstrucao conta contrato que vence no meio do mes; a regra ao vivo nao),
+     entao o teste de consistencia nao vale nessa costura */
+  const costura = !!(anterior && anterior.historico && !m.historico);
+  d.fecha = (ini!=null && !costura) ? (ini + (m.novos||0) + (m.retornos||0) - (m.cancelamentos||0)) === m.alunos : null;
   d.esperado = (ini!=null) ? ini + (m.novos||0) + (m.retornos||0) - (m.cancelamentos||0) : null;
   return d;
 }
 function serie(){
-  const ms = [...dados().meses].sort((a,b)=>a.mes.localeCompare(b.mes));
+  const ms = semearHistorico([...dados().meses]).sort((a,b)=>a.mes.localeCompare(b.mes));
   const out = [];
   ms.forEach((m,i)=> out.push(derivar(m, i>0 ? ms[i-1] : null)));
   return out;
@@ -567,7 +618,11 @@ function grafLinha(pontos, cor, corSoft, fmt, titulo){
   });
   let xl = '';
   const passo = Math.ceil(pontos.length/7);
-  pontos.forEach((p,i)=>{ if(i%passo===0 || i===pontos.length-1)
+  const ultimo = pontos.length-1;
+  pontos.forEach((p,i)=>{
+    const ehUltimo = i===ultimo;
+    /* rotulo periodico que cai perto do ultimo fica por cima dele; some com ele */
+    if(!ehUltimo && (i%passo!==0 || (ultimo-i) < passo*0.6)) return;
     xl += '<text x="'+X(i).toFixed(1)+'" y="'+(H-8)+'" text-anchor="middle" font-size="10.5" fill="var(--ink-3)">'+rotulo(p.m)+'</text>'; });
   const ult = validos[validos.length-1];
   let hits = '';
@@ -608,7 +663,8 @@ function grafMovimento(s){
       + ' data-tip="'+esc('<b>'+N(ent[i])+' entradas</b><br>'+N(d.novos||0)+' novos · '+N(d.retornos||0)+' retornos<br>'+rotuloLongo(d.mes))+'"/>';
     barras += '<rect x="'+(cx+1).toFixed(1)+'" y="'+meio.toFixed(1)+'" width="'+larg.toFixed(1)+'" height="'+Math.max(0,hs).toFixed(1)+'" rx="4" fill="var(--sneg)"'
       + ' data-tip="'+esc('<b>'+N(sai[i])+' cancelamentos</b><br>churn '+P(d.churnPct)+'<br>'+rotuloLongo(d.mes))+'"/>';
-    if(i%Math.ceil(s.length/7)===0 || i===s.length-1)
+    const pass = Math.ceil(s.length/7), ult = s.length-1;
+    if(i===ult || (i%pass===0 && (ult-i) >= pass*0.6))
       barras += '<text x="'+cx.toFixed(1)+'" y="'+(H-8)+'" text-anchor="middle" font-size="10.5" fill="var(--ink-3)">'+rotulo(d.mes)+'</text>';
   });
   return '<div class="chartbox"><svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Entradas e cancelamentos por mês">'+g+barras+'</svg></div>';
@@ -767,7 +823,7 @@ function blocoMeta(s, metas){
 
 function blocoTabela(s, metas){
   const cols = [
-    ['Mês', d=>rotulo(d.mes), ''],
+    ['Mês', d=>rotulo(d.mes) + (d.historico?' <small style="color:var(--ink-3)">rec.</small>':''), ''],
     ['Alunos', d=>N(d.alunos), ''],
     ['Novos', d=>N(d.novos), ''],
     ['Retornos', d=>N(d.retornos), ''],
@@ -1889,7 +1945,7 @@ function render(){
 
   h += '<section><div class="shead"><span class="eyebrow">Histórico</span><h2>Todos os meses</h2>'
     + '<button class="btn btn-sm" data-acao="csv" style="margin-left:auto">Baixar CSV</button></div>'
-    + '<p class="sub">Vermelho é indicador fora do alvo. A última coluna é o teste de consistência do movimento de alunos.</p>'
+    + '<p class="sub">Vermelho é indicador fora do alvo. A última coluna é o teste de consistência do movimento de alunos. Os meses marcados <b>rec.</b> são reconstruídos a partir dos contratos da EVO — têm base, entradas e saídas, mas não têm funil nem receita, porque esses números não existem no histórico.</p>'
     + blocoTabela(s, metas) + '</section>';
 
   app.innerHTML = h;
