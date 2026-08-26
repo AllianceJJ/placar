@@ -474,7 +474,7 @@ const RS2= v => (v===null||v===undefined||!isFinite(v)) ? '—' : 'R$ '+nf2.form
 const MESES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
 const rotulo = m => { const [a,b]=m.split('-'); return MESES[(+b)-1]+'/'+a.slice(2); };
 const rotuloLongo = m => { const [a,b]=m.split('-'); return MESES[(+b)-1].replace(/^./,c=>c.toUpperCase())+' de '+a; };
-const div = (a,b) => (b>0 ? a/b : null);
+const div = (a,b) => ((a==null || !isFinite(a) || !(b>0)) ? null : a/b);
 const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 /* ============ estado ============ */
@@ -1863,12 +1863,18 @@ function render(){
       + 'Confira no EVO antes de usar estes números.'
       + '<button class="btn btn-sm" data-acao="editar">Corrigir</button></div>';
   }
+  if(d.historico) h += '<div class="alerta" style="background:var(--surface-2);border-color:var(--rule);color:var(--ink-2)">'
+    + '<b>'+rotuloLongo(d.mes)+' é um mês reconstruído.</b> '
+    + 'Base, entradas e saídas saem dos contratos que o EVO guarda desde 2020, e a conta fecha. '
+    + 'Receita, funil, planos e grade não aparecem porque esses números não existem no histórico — a coleta automática só começou em agosto de 2026.</div>';
+
   h += '<section><div class="shead"><span class="eyebrow">Placar</span><h2>'+rotuloLongo(d.mes)+'</h2>'
     + '<button class="btn btn-sm" data-acao="editar" style="margin-left:auto">Editar este mês</button></div>'
     + '<p class="sub">Os seis números que respondem se o mês foi bom. O semáforo compara com as metas definidas no fim da página.</p>'
     + blocoPlacar(d, ant, metas) + '</section>';
 
-  const hBase = blocoBase();
+  /* a composicao da base e sempre a foto de hoje, entao so faz sentido no mes corrente */
+  const hBase = (idx === s.length-1 && !d.historico) ? blocoBase() : '';
   if(hBase) h += '<section><div class="shead"><span class="eyebrow">Base</span><h2>Composição da base</h2></div>'
     + '<p class="sub">De onde sai o número de alunos. Cadastro ativo não é aluno: só conta quem tem contrato dentro da validade e cobrança maior que zero.</p>'
     + hBase + '</section>';
