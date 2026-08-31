@@ -27,6 +27,8 @@
   --c1:#86b6ef; --c2:#2a78d6; --c3:#0d366b;
   --p1:#2a78d6; --p2:#eb6834; --p3:#1baf7a; --p4:#eda100;
   --p5:#e87ba4; --p6:#008300; --p7:#4a3aa7; --p8:#e34948;
+  /* paleta da pizza: validada para daltonismo e contraste nos dois temas */
+  --pz1:#b3272f; --pz2:#2f6fd6; --pz3:#b57a06; --pz4:#0f7a4e; --pz5:#a24bc4; --pz6:#d9701f; --pz7:#0b80ab;
   --grid:#e6e1de; --axis:#cdc4c0;
   --shadow:0 1px 2px rgba(23,17,15,.05), 0 8px 24px -12px rgba(23,17,15,.16);
   --display:"Archivo", "Helvetica Neue", Arial, sans-serif;
@@ -49,6 +51,7 @@
     --c1:#256abf; --c2:#5598e7; --c3:#b7d3f6;
     --p1:#3987e5; --p2:#d95926; --p3:#199e70; --p4:#c98500;
     --p5:#d55181; --p6:#008300; --p7:#9085e9; --p8:#e66767;
+    --pz1:#cf4a5f; --pz2:#5d88d6; --pz3:#bd8524; --pz4:#249c72; --pz5:#a05fc4; --pz6:#d4753a; --pz7:#2492b4;
     --grid:#2b2523; --axis:#3d3431;
     --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.7);
   }
@@ -69,6 +72,7 @@
   --c1:#256abf; --c2:#5598e7; --c3:#b7d3f6;
   --p1:#3987e5; --p2:#d95926; --p3:#199e70; --p4:#c98500;
   --p5:#d55181; --p6:#008300; --p7:#9085e9; --p8:#e66767;
+  --pz1:#cf4a5f; --pz2:#5d88d6; --pz3:#bd8524; --pz4:#249c72; --pz5:#a05fc4; --pz6:#d4753a; --pz7:#2492b4;
   --grid:#2b2523; --axis:#3d3431;
   --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.7);
 }
@@ -400,6 +404,18 @@ footer b{color:var(--ink-2)}
   .prof-row{grid-template-columns:1fr 1fr; }
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important; animation:none!important}}
+
+.pz-wrap{display:flex;gap:26px;align-items:center;flex-wrap:wrap;margin:6px 0 4px}
+.pz-svg{width:200px;height:200px;flex:0 0 auto}
+.pz-tot{font-size:19px;font-weight:800;fill:var(--ink);font-family:inherit}
+.pz-cap{font-size:10px;fill:var(--ink-3);letter-spacing:.08em;text-transform:uppercase;font-family:inherit}
+.pz-leg{flex:1 1 260px;min-width:0;display:flex;flex-direction:column;gap:7px}
+.pz-item{display:grid;grid-template-columns:12px 1fr auto auto;gap:10px;align-items:baseline;font-size:13.5px}
+.pz-cor{width:11px;height:11px;border-radius:3px;display:block;align-self:center}
+.pz-nome{color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pz-val{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.pz-pct{color:var(--ink-3);font-variant-numeric:tabular-nums;white-space:nowrap;min-width:44px;text-align:right}
+@media(max-width:560px){.pz-wrap{gap:16px}.pz-svg{width:170px;height:170px;margin:0 auto}}
 </style>
 </head>
 <body>
@@ -688,6 +704,43 @@ function grafProfessores(profs){
       + '<span style="font-size:12px;color:var(--ink-3);white-space:nowrap">'+N(l.fechadas)+' de '+N(l.realizadas)+'</span>'
       + '</div></div>';
   }).join('') + '</div>';
+}
+
+/* ============ rosca de composicao (receita por servico) ============ */
+function grafPizza(itens, rotuloCentro){
+  const ds = (itens||[]).filter(x=>+x.valor>0).sort((a,b)=>(+b.valor)-(+a.valor));
+  if(!ds.length) return '';
+  const tot = ds.reduce((t,x)=>t+(+x.valor),0);
+  if(!(tot>0)) return '';
+  const R=104, r=64, cx=120, cy=120;
+  let ang = -Math.PI/2, fatias='';
+  ds.forEach((x,i)=>{
+    const frac = (+x.valor)/tot;
+    const cor = 'var(--pz'+((i%7)+1)+')';
+    if(frac > 0.9995){
+      /* uma categoria so: anel inteiro, arco de 360 graus nao fecha em path */
+      fatias += '<circle cx="'+cx+'" cy="'+cy+'" r="'+((R+r)/2)+'" fill="none" stroke="'+cor+'" stroke-width="'+(R-r)+'"/>';
+      return;
+    }
+    const a2 = ang + frac*Math.PI*2;
+    const grande = frac > 0.5 ? 1 : 0;
+    const px = (a,rad)=>(cx+Math.cos(a)*rad).toFixed(2)+' '+(cy+Math.sin(a)*rad).toFixed(2);
+    fatias += '<path d="M'+px(ang,R)+' A'+R+' '+R+' 0 '+grande+' 1 '+px(a2,R)
+      + ' L'+px(a2,r)+' A'+r+' '+r+' 0 '+grande+' 0 '+px(ang,r)+' Z" fill="'+cor+'"'
+      + ' stroke="var(--surface)" stroke-width="2"/>';
+    ang = a2;
+  });
+  const legenda = ds.map((x,i)=>'<div class="pz-item">'
+    + '<span class="pz-cor" style="background:var(--pz'+((i%7)+1)+')"></span>'
+    + '<span class="pz-nome">'+esc(x.nome)+'</span>'
+    + '<span class="pz-val">'+RS(x.valor)+'</span>'
+    + '<span class="pz-pct">'+P(x.valor/tot*100)+'</span></div>').join('');
+  return '<div class="pz-wrap">'
+    + '<svg viewBox="0 0 240 240" class="pz-svg" role="img" aria-label="Proporcao da receita por servico">'
+    + fatias
+    + '<text x="120" y="114" text-anchor="middle" class="pz-tot">'+RS(tot)+'</text>'
+    + '<text x="120" y="134" text-anchor="middle" class="pz-cap">'+esc(rotuloCentro||'no mes')+'</text>'
+    + '</svg><div class="pz-leg">'+legenda+'</div></div>';
 }
 
 /* ============ blocos de render ============ */
@@ -1116,6 +1169,8 @@ function blocoCaixa(){
     const tot = cats.reduce((s,c)=>s+(c.receita||0),0);
     h += '<div class="card" style="margin-top:14px"><h3>De onde vem o dinheiro fora do plano</h3>'
       + '<p class="note">Categorias separadas por tipo de item na venda. Aluguel de kimono, aula avulsa, personal e exame de faixa entram aqui — é caixa que não aparece no MRR e por isso costuma passar despercebido.</p>'
+      + grafPizza(cats.map(c=>({nome:c.categoria, valor:c.receita})), 'fora do plano')
+      + '<p class="note">A rosca mostra a proporção dentro deste bolo, que é '+P(cx.pct_fora_do_recorrente)+' do movimento do mês. O personal recorrente fica fora dela porque a EVO o registra como plano, não como serviço avulso.</p>'
       + '<div class="tbl-wrap"><table><thead><tr><th>Categoria</th><th>Vendas</th><th>Receita</th><th>Peso</th><th class="wrap">Itens</th></tr></thead><tbody>'
       + cats.map(c=>'<tr><td>'+esc(c.categoria)+'</td><td>'+N(c.vendas)+'</td><td>'+RS(c.receita)+'</td>'
           + '<td>'+P(tot?c.receita/tot*100:0)+'</td>'
@@ -1168,6 +1223,7 @@ function blocoFolha(d){
     + tile('Total da folha de aulas', RS(totValor), 'mute', '<span>coletivas + introdutórias + complementares</span>')
     + tile('Introdutórias no mês', N(totIntro), totIntro>0?'mute':'warn', '<span>'+(totIntro>0?'primeiro contato, entram no funil':'nenhuma lançada na grade')+'</span>')
     + tile('Complementares no mês', N(totComp), 'mute', '<span>aula 2 e 3 da metodologia, fora do funil</span>')
+    + tile('Total apurado no mês', RS(totValor + ((av.receita_exames||0)/3)), 'mute', '<span>aulas mais a fatia dos exames</span>')
     + '</div>';
 
   h += '<div class="card" style="margin-top:14px"><h3>Fechamento por professor</h3>'
@@ -1180,7 +1236,9 @@ function blocoFolha(d){
     + '<td>'+N(linhas.reduce((s,p)=>s+p.presencas,0))+'</td><td>'+RS2(totValor)+'</td></tr>'
     + '</tbody></table></div></div>';
 
-  const semDono = linhas.filter(p=>/alliance/i.test(p.professor) || /sem professor/i.test(p.professor));
+  /* "ALLIANCE JIU JITSU" era o Alessandro antes de ele ter cadastro e o cálculo já
+     realoca. Sobra aqui só a aula realmente sem instrutor preenchido no EVO. */
+  const semDono = linhas.filter(p=>/sem professor/i.test(p.professor));
   if(semDono.length){
     const q = semDono.reduce((s,p)=>s+p.aulas,0);
     h += '<div class="alerta" style="margin-top:14px"><b>'+N(q)+' '+(q===1?'aula lançada sem professor':'aulas lançadas sem professor')+'.</b> '
@@ -1198,11 +1256,12 @@ function blocoFolha(d){
   if(temAvulso){
     h += '<div class="card" style="margin-top:14px"><h3>A ratear na mão</h3>'
       + '<p class="note">O EVO registra a venda destes itens, mas não quem conduziu. Enquanto exame de faixa e aula particular não forem lançados na grade com o professor, estas linhas entram no acerto manualmente.</p>'
-      + '<div class="tbl-wrap"><table><thead><tr><th>Item</th><th>Quantidade</th><th>Receita</th><th style="text-align:left">Como fechar</th></tr></thead><tbody>'
-      + '<tr><td>Exames de faixa</td><td>'+N(av.exames_vendidos)+'</td><td>'+RS(av.receita_exames)+'</td><td class="note wrap">Quem aplicou não está no sistema — combine na escala</td></tr>'
-      + '<tr><td>Aulas particulares avulsas</td><td>'+N(av.particulares_avulsas)+'</td><td>'+RS(av.receita_particulares)+'</td><td class="note wrap">Vendidas como “Eduard/Thomas”, sem separar quem deu</td></tr>'
-      + '<tr><td>Personal recorrente</td><td>'+N(av.alunos_personal_recorrente)+' <small>alunos</small></td><td>'+RS(av.receita_personal_recorrente)+'</td><td class="note wrap">Contrato mensal, também sem professor identificado</td></tr>'
-      + '</tbody></table></div></div>';
+      + '<div class="tbl-wrap"><table><thead><tr><th>Item</th><th>Quantidade</th><th>Receita</th><th>Cabe ao professor</th><th style="text-align:left">Como fechar</th></tr></thead><tbody>'
+      + '<tr><td>Exames de faixa</td><td>'+N(av.exames_vendidos)+'</td><td>'+RS(av.receita_exames)+'</td><td><b>'+RS2((av.receita_exames||0)/3)+'</b> <small>1/3</small></td><td class="note wrap">Quem aplicou não está no sistema — combine na escala</td></tr>'
+      + '<tr><td>Aulas particulares avulsas</td><td>'+N(av.particulares_avulsas)+'</td><td>'+RS(av.receita_particulares)+'</td><td>'+RS2((av.receita_particulares||0)/2)+' <small>50%</small></td><td class="note wrap">Vendidas como “Eduard/Thomas”, sem separar quem deu</td></tr>'
+      + '<tr><td>Personal recorrente</td><td>'+N(av.alunos_personal_recorrente)+' <small>alunos</small></td><td>'+RS(av.receita_personal_recorrente)+'</td><td>'+RS2((av.receita_personal_recorrente||0)/2)+' <small>50%</small></td><td class="note wrap">Contrato mensal, também sem professor identificado</td></tr>'
+      + '</tbody></table></div>'
+      + '<p class="note">O exame paga um terço do valor cobrado ao professor que aplicou; o personal paga metade. Os dois valores saem como bolo porque a EVO registra a venda, não quem conduziu — enquanto isso não for lançado na grade, o rateio é combinado na mão.</p></div>';
   }
   return h;
 }
@@ -1708,7 +1767,10 @@ function montarSlides(){
 
   L.push({t:'Funil', h:'<h2 class="ap-h">Funil da aula experimental</h2><div class="card">'+blocoFunil(d, metas)+'</div>'});
 
-  L.push({t:'Professores', h:'<h2 class="ap-h">Conversão por professor</h2><div class="card">'+grafProfessores(d.professores)+'</div>'});
+  const apSem = (d.professoresSemana && d.professoresSemana.length)
+    ? '<div class="fsep" style="margin-top:16px">Na semana</div>'+grafProfessores(d.professoresSemana) : '';
+  L.push({t:'Professores', h:'<h2 class="ap-h">Conversão por professor</h2><div class="card">'
+    + (apSem ? '<div class="fsep">No mês</div>' : '') + grafProfessores(d.professores) + apSem + '</div>'});
 
   const apBase = blocoBase();
   if(apBase) L.push({t:'Base', h:'<h2 class="ap-h">Composição da base</h2>'+apBase});
@@ -1903,7 +1965,14 @@ function render(){
 
   h += '<section><div class="shead"><span class="eyebrow">Professores</span><h2>Conversão por professor</h2></div>'
     + '<p class="sub">Quantas experimentais cada professor deu e quantas viraram matrícula. Diferença grande entre professores é treinável — vale entender o que o de cima faz.</p>'
-    + '<div class="card">' + grafProfessores(d.professores) + '</div>'
+    + '<div class="card">'
+      + ((d.professoresSemana && d.professoresSemana.length) ? '<div class="fsep">No mês</div>' : '')
+      + grafProfessores(d.professores)
+      + ((d.professoresSemana && d.professoresSemana.length)
+          ? '<div class="fsep" style="margin-top:18px">Na semana</div>' + grafProfessores(d.professoresSemana)
+            + '<p class="note" style="margin-top:10px">A semana mostra ritmo, o mês mostra resultado. A conversão da semana quase sempre parece pior, e isso é esperado: a matrícula costuma sair dias depois da aula, então quem fez experimental nos últimos dias ainda não teve tempo de fechar. Compare semana com semana, não semana com mês.</p>'
+          : '')
+      + '</div>'
     + blocoVendedores() + '</section>';
 
   h += '<section><div class="shead"><span class="eyebrow">Planos</span><h2>Mix de planos</h2></div>'
