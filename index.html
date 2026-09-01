@@ -1205,6 +1205,91 @@ function blocoServicos(d){
   return h;
 }
 
+function blocoConferencia(d){
+  const raiz = dados() || {};
+  const det = raiz.detalhe || {};
+  const folha = det.folha_do_mes || [];
+  const decl = (raiz.declaracoes || []).filter(x => x && x.periodo === d.mes);
+  if(!decl.length) return '';
+
+  const porProf = {};
+  folha.forEach(f => { porProf[f.professor] = { professor:f.professor, apurado:+f.aulas||0, declarado:null, dec:null }; });
+  decl.forEach(x => {
+    if(!porProf[x.professor]) porProf[x.professor] = { professor:x.professor, apurado:0, declarado:null, dec:null };
+    porProf[x.professor].declarado = +x.aulasDeclaradas||0;
+    porProf[x.professor].dec = x;
+  });
+  const linhas = Object.keys(porProf).map(k=>porProf[k])
+    .map(l => ({...l, dif: (l.declarado==null) ? null : (l.declarado - l.apurado)}))
+    .sort((a,b)=>Math.abs(b.dif??-1)-Math.abs(a.dif??-1) || b.apurado-a.apurado);
+
+  const enviaram = linhas.filter(l=>l.declarado!=null);
+  const faltam = linhas.filter(l=>l.declarado==null && l.apurado>0);
+  const divergem = enviaram.filter(l=>l.dif!==0);
+  const somaDif = enviaram.reduce((t,l)=>t+(l.dif||0),0);
+
+  /* Rateio do exame: a EVO registra a venda, nao quem aplicou. Com a declaracao
+     do professor sabemos quem aplicou e para quantos alunos, entao a fatia de um
+     terco deixa de ser bolo e passa a ter dono, proporcional aos alunos. */
+  const av = det.avulsos_do_mes || {};
+  const bolo = (av.receita_exames||0)/3;
+  const aplicaram = enviaram.filter(l=>l.dec && l.dec.aplicouExame && (+l.dec.exameAlunos>0));
+  const totAlunosExame = aplicaram.reduce((t,l)=>t+(+l.dec.exameAlunos||0),0);
+
+  let h = '<div class="tiles">'
+    + tile('Relatórios recebidos', N(enviaram.length)+' de '+N(linhas.filter(l=>l.apurado>0).length),
+        faltam.length?'warn':'ok', '<span>'+(faltam.length? N(faltam.length)+' ainda não enviaram' : 'todos entregaram')+'</span>')
+    + tile('Professores com divergência', N(divergem.length), divergem.length?'warn':'ok',
+        '<span>'+(divergem.length?'conferir antes de pagar':'apurado bate com o declarado')+'</span>')
+    + tile('Aulas não lançadas na grade', (somaDif>0?'+':'')+N(somaDif), somaDif>0?'warn':'mute',
+        '<span>'+(somaDif>0? 'declaradas a mais que o registrado, '+RS2(somaDif*valorAula())+' fora da apuração' : 'nada a recuperar')+'</span>')
+    + '</div>';
+
+  h += '<div class="card" style="margin-top:14px"><h3>Apurado contra declarado</h3>'
+    + '<p class="note">A coluna da esquerda é o que a grade do EVO registrou; a da direita é o que o professor declarou no app dele. A diferença não é erro de ninguém — é aula que aconteceu e não foi lançada, ou lançada no nome errado. É onde o acerto e a gestão perdem informação junto.</p>'
+    + '<div class="tbl-wrap"><table><thead><tr><th>Professor</th><th>Apurado</th><th>Declarado</th><th>Diferença</th><th>Particulares</th><th>Exame</th><th class="wrap">Observação do professor</th></tr></thead><tbody>'
+    + linhas.map(l=>{
+        const semEnvio = l.declarado==null;
+        const cor = semEnvio ? 'var(--ink-3)' : (l.dif===0 ? 'var(--good-ink)' : 'var(--warn-ink)');
+        const txt = semEnvio ? '—' : (l.dif>0?'+':'')+nf0.format(l.dif);
+        const x = l.dec||{};
+        return '<tr><td>'+esc(l.professor)+'</td><td>'+N(l.apurado)+'</td>'
+          + '<td>'+(semEnvio?'<span class="note">não enviou</span>':N(l.declarado))+'</td>'
+          + '<td style="color:'+cor+';font-weight:700">'+txt+'</td>'
+          + '<td>'+(semEnvio?'—':N(x.particularesQtd||0))+'</td>'
+          + '<td>'+(semEnvio?'—':(x.aplicouExame?N(x.exameAlunos||0)+' <small>alunos</small>':'não')) +'</td>'
+          + '<td class="note wrap">'+esc(x.observacoes||'')+'</td></tr>';
+      }).join('')
+    + '</tbody></table></div></div>';
+
+  if(bolo>0){
+    h += '<div class="card" style="margin-top:14px"><h3>Exame de faixa, agora com dono</h3>';
+    if(totAlunosExame>0){
+      h += '<p class="note">A EVO registra a venda do exame, não quem aplicou. Com a declaração do professor isso deixa de ser bolo: a fatia de um terço se divide proporcionalmente aos alunos que cada um examinou.</p>'
+        + '<div class="tbl-wrap"><table><thead><tr><th>Professor</th><th>Alunos examinados</th><th>Data</th><th>Cabe a ele</th></tr></thead><tbody>'
+        + aplicaram.map(l=>'<tr><td>'+esc(l.professor)+'</td><td>'+N(l.dec.exameAlunos)+'</td>'
+            + '<td>'+esc(dataBr(l.dec.exameData)||'—')+'</td>'
+            + '<td><b>'+RS2(bolo*(+l.dec.exameAlunos)/totAlunosExame)+'</b></td></tr>').join('')
+        + '<tr style="font-weight:700;background:var(--surface-2)"><td>Total</td><td>'+N(totAlunosExame)+'</td><td></td><td>'+RS2(bolo)+'</td></tr>'
+        + '</tbody></table></div>';
+      const vendidos = av.exames_vendidos||0;
+      if(vendidos && totAlunosExame !== vendidos){
+        h += '<div class="alerta" style="margin-top:12px"><b>A EVO vendeu '+N(vendidos)+' '+(vendidos===1?'exame':'exames')+' e os professores declararam '+N(totAlunosExame)+'.</b> '
+          + 'Enquanto os dois números não baterem, o rateio acima é aproximado — vale conferir se algum exame ficou sem declaração ou foi vendido e não aplicado.</div>';
+      }
+    } else {
+      h += '<p class="note">Houve '+RS(av.receita_exames)+' em exames no mês, mas nenhum professor declarou ter aplicado. Enquanto isso não for preenchido no app, os '+RS2(bolo)+' que cabem aos professores continuam sem dono e o rateio é combinado na mão.</p>';
+    }
+    h += '</div>';
+  }
+
+  if(faltam.length){
+    h += '<div class="alerta" style="margin-top:14px"><b>Faltam os relatórios de '+esc(faltam.map(l=>l.professor).join(', '))+'.</b> '
+      + 'Deram aula no mês e ainda não enviaram pelo app. Sem a declaração deles, a conferência do mês fica incompleta e o exame não tem como ser rateado.</div>';
+  }
+  return h;
+}
+
 function blocoFolha(d){
   const det = (dados()||{}).detalhe||{};
   const f = det.folha_do_mes || [];
@@ -1780,6 +1865,8 @@ function montarSlides(){
   if(apServ) L.push({t:'Avulsos', h:'<h2 class="ap-h">Serviços e produtos</h2>'+apServ});
   const apFolha = blocoFolha(d);
   if(apFolha) L.push({t:'Folha', h:'<h2 class="ap-h">Folha de aulas do mês</h2>'+apFolha});
+  const apConf = blocoConferencia(d);
+  if(apConf) L.push({t:'Conferência', h:'<h2 class="ap-h">O que o professor declarou</h2>'+apConf});
   if((d.planos||[]).length) L.push({t:'Planos', h:'<h2 class="ap-h">Mix de planos</h2>'+blocoPlanos(d)});
 
   L.push({t:'Financeiro', h:'<h2 class="ap-h">Receita e inadimplência</h2>'
@@ -1988,6 +2075,11 @@ function render(){
   if(hFolha) h += '<section><div class="shead"><span class="eyebrow">Equipe</span><h2>Folha de aulas do mês</h2></div>'
     + '<p class="sub">Quantas aulas cada professor deu no mês corrente e quanto isso dá pelo valor por aula. É a conta do acerto — o que a grade registrou, não o que foi combinado.</p>'
     + hFolha + '</section>';
+
+  const hConf = blocoConferencia(d);
+  if(hConf) h += '<section><div class="shead"><span class="eyebrow">Conferência</span><h2>O que o professor declarou</h2></div>'
+    + '<p class="sub">O relatório que cada professor envia pelo app, ao lado do que a grade do EVO registrou. Quem bate, fecha sozinho. Quem diverge, vira uma linha para conferir antes de pagar.</p>'
+    + hConf + '</section>';
 
   const hServ = blocoServicos(d);
   if(hServ) h += '<section><div class="shead"><span class="eyebrow">Avulsos</span><h2>Serviços e produtos</h2></div>'
