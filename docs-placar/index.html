@@ -1,0 +1,2666 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="Painel gerencial da Alliance Jiu-Jitsu Sao Jose dos Campos.">
+<title>Placar da Alliance SJC</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Instrument+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  color-scheme: light;
+  --ground:#f7f5f4; --surface:#fffefd; --surface-2:#f1edeb; --surface-3:#e9e4e1;
+  --ink:#17110f; --ink-2:#574e4a; --ink-3:#8b807b;
+  --rule:#e2dcd9; --rule-strong:#cdc4c0;
+  --accent:#8e1f2b; --accent-soft:#f6e7e8; --accent-ink:#ffffff;
+  --good:#0ca30c; --good-ink:#0a6b13; --good-soft:#e4f4e2;
+  --warn:#fab219; --warn-ink:#7d5405; --warn-soft:#fdf1d9;
+  --crit:#d03b3b; --crit-ink:#9d2222; --crit-soft:#fae3e3;
+  --s1:#2a78d6; --s1-soft:rgba(42,120,214,.14);
+  --sneg:#e34948; --sneg-soft:rgba(227,73,72,.14);
+  --saq:#1baf7a; --saq-soft:rgba(27,175,122,.14);
+  --f1:#86b6ef; --f2:#5598e7; --f3:#2a78d6; --f4:#1c5cab;
+  --c1:#86b6ef; --c2:#2a78d6; --c3:#0d366b;
+  --p1:#2a78d6; --p2:#eb6834; --p3:#1baf7a; --p4:#eda100;
+  --p5:#e87ba4; --p6:#008300; --p7:#4a3aa7; --p8:#e34948;
+  /* paleta da pizza: validada para daltonismo e contraste nos dois temas */
+  --pz1:#b3272f; --pz2:#2f6fd6; --pz3:#b57a06; --pz4:#0f7a4e; --pz5:#a24bc4; --pz6:#d9701f; --pz7:#0b80ab;
+  --grid:#e6e1de; --axis:#cdc4c0;
+  --shadow:0 1px 2px rgba(23,17,15,.05), 0 8px 24px -12px rgba(23,17,15,.16);
+  --display:"Archivo", "Helvetica Neue", Arial, sans-serif;
+  --body:"Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --ground:#100d0c; --surface:#1a1615; --surface-2:#221d1b; --surface-3:#2b2422;
+    --ink:#ffffff; --ink-2:#c6bcb7; --ink-3:#8f837e;
+    --rule:#2e2725; --rule-strong:#3d3431;
+    --accent:#d1485a; --accent-soft:#2e1a1d; --accent-ink:#140d0e;
+    --good:#0ca30c; --good-ink:#57cf57; --good-soft:#122c12;
+    --warn:#fab219; --warn-ink:#f0bb4a; --warn-soft:#2e2410;
+    --crit:#d03b3b; --crit-ink:#f08080; --crit-soft:#311717;
+    --s1:#3987e5; --s1-soft:rgba(57,135,229,.20);
+    --sneg:#e66767; --sneg-soft:rgba(230,103,103,.20);
+    --saq:#199e70; --saq-soft:rgba(25,158,112,.22);
+    --f1:#3987e5; --f2:#2a78d6; --f3:#256abf; --f4:#184f95;
+    --c1:#256abf; --c2:#5598e7; --c3:#b7d3f6;
+    --p1:#3987e5; --p2:#d95926; --p3:#199e70; --p4:#c98500;
+    --p5:#d55181; --p6:#008300; --p7:#9085e9; --p8:#e66767;
+    --pz1:#cf4a5f; --pz2:#5d88d6; --pz3:#bd8524; --pz4:#249c72; --pz5:#a05fc4; --pz6:#d4753a; --pz7:#2492b4;
+    --grid:#2b2523; --axis:#3d3431;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.7);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --ground:#100d0c; --surface:#1a1615; --surface-2:#221d1b; --surface-3:#2b2422;
+  --ink:#ffffff; --ink-2:#c6bcb7; --ink-3:#8f837e;
+  --rule:#2e2725; --rule-strong:#3d3431;
+  --accent:#d1485a; --accent-soft:#2e1a1d; --accent-ink:#140d0e;
+  --good:#0ca30c; --good-ink:#57cf57; --good-soft:#122c12;
+  --warn:#fab219; --warn-ink:#f0bb4a; --warn-soft:#2e2410;
+  --crit:#d03b3b; --crit-ink:#f08080; --crit-soft:#311717;
+  --s1:#3987e5; --s1-soft:rgba(57,135,229,.20);
+  --sneg:#e66767; --sneg-soft:rgba(230,103,103,.20);
+  --saq:#199e70; --saq-soft:rgba(25,158,112,.22);
+  --f1:#3987e5; --f2:#2a78d6; --f3:#256abf; --f4:#184f95;
+  --c1:#256abf; --c2:#5598e7; --c3:#b7d3f6;
+  --p1:#3987e5; --p2:#d95926; --p3:#199e70; --p4:#c98500;
+  --p5:#d55181; --p6:#008300; --p7:#9085e9; --p8:#e66767;
+  --pz1:#cf4a5f; --pz2:#5d88d6; --pz3:#bd8524; --pz4:#249c72; --pz5:#a05fc4; --pz6:#d4753a; --pz7:#2492b4;
+  --grid:#2b2523; --axis:#3d3431;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.7);
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--ground); color:var(--ink);
+  font-family:var(--body); font-size:15px; line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{font-family:var(--display); margin:0; text-wrap:balance; letter-spacing:-.015em}
+button{font-family:inherit; font-size:inherit; cursor:pointer}
+input,select{font-family:inherit; font-size:inherit}
+.wrap{max-width:1180px; margin:0 auto; padding:0 24px}
+
+/* ---------- header ---------- */
+.top{
+  position:sticky; top:0; z-index:40; background:var(--ground);
+  border-bottom:1px solid var(--rule);
+}
+.top-in{display:flex; align-items:center; gap:18px; padding:14px 24px; max-width:1180px; margin:0 auto; flex-wrap:wrap}
+.brand{display:flex; align-items:center; gap:11px; margin-right:auto}
+.brand-mark{width:5px; height:30px; background:var(--accent); border-radius:3px}
+.brand h1{font-size:17px; font-weight:700}
+.brand p{margin:0; font-size:11.5px; color:var(--ink-3); letter-spacing:.09em; text-transform:uppercase; font-weight:500}
+.msel{
+  display:flex; align-items:center; gap:8px; background:var(--surface);
+  border:1px solid var(--rule); border-radius:9px; padding:5px 6px 5px 12px;
+}
+.msel label{font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-3); font-weight:600}
+.msel select{border:0; background:transparent; color:var(--ink); font-weight:600; font-family:var(--display); padding:3px 4px; outline:none}
+.btn{
+  border:1px solid var(--rule-strong); background:var(--surface); color:var(--ink);
+  border-radius:9px; padding:8px 14px; font-weight:600; font-size:13.5px;
+  transition:background .14s, border-color .14s;
+}
+.btn:hover{background:var(--surface-2)}
+.btn:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+.btn-primary{background:var(--accent); border-color:var(--accent); color:var(--accent-ink)}
+.btn-primary:hover{filter:brightness(1.08); background:var(--accent)}
+.btn-sm{padding:5px 10px; font-size:12.5px; border-radius:7px}
+.saveflag{font-size:12px; color:var(--ink-3); min-width:88px}
+.saveflag.on{color:var(--good-ink)}
+.saveflag.err{color:var(--crit-ink)}
+.stamp{
+  display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:600;
+  color:var(--ink-3); background:var(--surface-2); border:1px solid var(--rule);
+  border-radius:99px; padding:4px 11px;
+}
+.stamp[hidden]{display:none}
+.senha-ov{
+  position:fixed; inset:0; z-index:90; background:var(--ground);
+  display:flex; align-items:center; justify-content:center; padding:24px;
+}
+.senha-cx{
+  background:var(--surface); border:1px solid var(--rule); border-radius:16px;
+  padding:34px 32px; max-width:390px; width:100%; box-shadow:var(--shadow);
+  display:flex; flex-direction:column; gap:13px;
+}
+.senha-marca{width:5px; height:30px; background:var(--accent); border-radius:3px}
+.senha-cx h2{font-size:19px; font-weight:700; margin:0}
+.senha-cx p{margin:0; font-size:13.5px; color:var(--ink-2); line-height:1.5}
+.senha-cx input{
+  border:1px solid var(--rule-strong); border-radius:9px; padding:11px 13px;
+  background:var(--ground); color:var(--ink); font-size:15px; font-weight:600; width:100%;
+}
+.senha-cx input:focus{outline:2px solid var(--accent); border-color:transparent}
+.senha-cx .btn{width:100%; padding:11px}
+.senha-err{
+  background:var(--crit-soft); color:var(--crit-ink); border-radius:8px;
+  padding:9px 12px; font-size:13px; font-weight:600;
+}
+.senha-nota{font-size:11.5px; color:var(--ink-3); line-height:1.45}
+.stamp .pulse{width:6px; height:6px; border-radius:99px; background:var(--good); flex:none}
+
+/* ---------- demo banner ---------- */
+.demo{
+  background:var(--warn-soft); border-bottom:1px solid var(--rule);
+  color:var(--warn-ink); font-size:13px; font-weight:600;
+}
+.demo .wrap{display:flex; align-items:center; gap:12px; padding-top:9px; padding-bottom:9px; flex-wrap:wrap}
+
+/* ---------- sections ---------- */
+section{padding:34px 0 6px; scroll-margin-top:78px}
+.shead{display:flex; align-items:baseline; gap:12px; margin-bottom:4px; flex-wrap:wrap}
+.shead h2{font-size:20px; font-weight:700}
+.eyebrow{
+  font-family:var(--display); font-size:10.5px; font-weight:700; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--accent);
+}
+.sub{color:var(--ink-2); font-size:13.5px; margin:6px 0 20px; max-width:64ch}
+.sub b{color:var(--ink); font-weight:600}
+
+/* ---------- tiles ---------- */
+.tiles{display:grid; grid-template-columns:repeat(auto-fit,minmax(196px,1fr)); gap:12px}
+.tiles.placar{grid-template-columns:repeat(3,1fr)}
+@media (max-width:900px){.tiles.placar{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:520px){.tiles.placar{grid-template-columns:1fr}}
+.tile{
+  background:var(--surface); border:1px solid var(--rule); border-radius:13px;
+  padding:15px 16px 14px; box-shadow:var(--shadow); position:relative; overflow:hidden;
+}
+.tile .lab{font-size:11.5px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-3); font-weight:600}
+.tile .val{font-family:var(--display); font-size:33px; font-weight:700; line-height:1.05; margin-top:9px; letter-spacing:-.03em}
+.tile .val small{font-size:16px; font-weight:600; color:var(--ink-2); letter-spacing:0}
+.tile .foot{margin-top:8px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:12.5px; color:var(--ink-2)}
+.chip{
+  display:inline-flex; align-items:center; gap:5px; border-radius:99px;
+  padding:2px 9px 2px 7px; font-size:11.5px; font-weight:700; letter-spacing:.01em;
+}
+.chip .dot{width:7px; height:7px; border-radius:99px; flex:none}
+.chip.good{background:var(--good-soft); color:var(--good-ink)} .chip.good .dot{background:var(--good)}
+.chip.warn{background:var(--warn-soft); color:var(--warn-ink)} .chip.warn .dot{background:var(--warn)}
+.chip.crit{background:var(--crit-soft); color:var(--crit-ink)} .chip.crit .dot{background:var(--crit)}
+.chip.mute{background:var(--surface-2); color:var(--ink-3)} .chip.mute .dot{background:var(--ink-3)}
+.delta{font-weight:600; font-variant-numeric:tabular-nums}
+.delta.up{color:var(--good-ink)} .delta.down{color:var(--crit-ink)} .delta.flat{color:var(--ink-3)}
+.stripe{position:absolute; left:0; top:0; bottom:0; width:3px}
+.stripe.good{background:var(--good)} .stripe.warn{background:var(--warn)}
+.stripe.crit{background:var(--crit)} .stripe.mute{background:var(--rule-strong)}
+
+/* ---------- cards / charts ---------- */
+.grid2{display:grid; grid-template-columns:repeat(auto-fit,minmax(330px,1fr)); gap:14px}
+.card{
+  background:var(--surface); border:1px solid var(--rule); border-radius:13px;
+  padding:18px 18px 12px; box-shadow:var(--shadow);
+}
+.card h3{font-size:14.5px; font-weight:700; margin-bottom:2px}
+.card .note{font-size:12.5px; color:var(--ink-3); margin:0 0 14px}
+.legend{display:flex; gap:16px; flex-wrap:wrap; margin:0 0 12px; font-size:12.5px; color:var(--ink-2)}
+.legend span{display:inline-flex; align-items:center; gap:6px}
+.legend i{width:11px; height:11px; border-radius:3px; display:inline-block}
+.chartbox{position:relative; width:100%}
+svg{display:block; width:100%; overflow:visible}
+.tip{
+  position:fixed; z-index:80; pointer-events:none; opacity:0; transform:translate(-50%,-118%);
+  background:var(--ink); color:var(--ground); border-radius:8px; padding:7px 10px;
+  font-size:12.5px; line-height:1.45; white-space:nowrap; transition:opacity .1s;
+  box-shadow:0 6px 20px -6px rgba(0,0,0,.45); font-variant-numeric:tabular-nums;
+}
+.tip b{font-family:var(--display)}
+.alerta{
+  display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-top:26px;
+  background:var(--crit-soft); color:var(--crit-ink); border:1px solid var(--crit);
+  border-radius:11px; padding:13px 16px; font-size:13.5px; line-height:1.45;
+}
+.alerta b{font-weight:700}
+.alerta .btn{margin-left:auto; border-color:var(--crit); color:var(--crit-ink); background:transparent}
+.alerta .btn:hover{background:var(--surface)}
+.empty{
+  border:1px dashed var(--rule-strong); border-radius:13px; padding:40px 24px;
+  text-align:center; color:var(--ink-2); background:var(--surface);
+}
+.empty h3{font-size:17px; margin-bottom:8px}
+.empty p{max-width:46ch; margin:0 auto 18px; font-size:14px}
+
+/* ---------- equation ---------- */
+.eq{
+  display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+  background:var(--surface-2); border:1px solid var(--rule); border-radius:11px; padding:14px 16px;
+}
+.eq-i{display:flex; flex-direction:column; gap:1px}
+.eq-i .k{font-size:11px; text-transform:uppercase; letter-spacing:.07em; color:var(--ink-3); font-weight:600}
+.eq-i .v{font-family:var(--display); font-size:21px; font-weight:700; font-variant-numeric:tabular-nums}
+.eq-op{font-family:var(--display); font-size:19px; color:var(--ink-3); font-weight:600}
+.eq-res{margin-left:auto}
+
+/* ---------- funnel ---------- */
+.funnel{display:flex; flex-direction:column; gap:3px}
+.fstage{display:grid; grid-template-columns:126px 1fr; align-items:center; gap:12px}
+.fstage .fl{font-size:12.5px; color:var(--ink-2); font-weight:600; text-align:right}
+.fbar{height:30px; border-radius:0 5px 5px 0; display:flex; align-items:center; padding-left:10px;
+  color:#fff; font-family:var(--display); font-weight:700; font-size:14px; min-width:34px}
+.fgap{display:grid; grid-template-columns:126px 1fr; gap:12px; margin:1px 0}
+.fgap .fr{font-size:11.5px; color:var(--ink-3); padding-left:10px; font-weight:600}
+.fgap .fr b{color:var(--ink-2); font-variant-numeric:tabular-nums}
+
+
+/* ---------- cenários ---------- */
+.formula{
+  font-family:var(--display); font-size:13.5px; font-weight:600; line-height:1.9;
+  color:var(--ink-2); overflow-x:auto; white-space:nowrap; padding-bottom:4px;
+}
+.formula sub,.formula sup{font-size:9.5px; color:var(--ink-3)}
+.stack{display:flex; width:100%; height:38px; border-radius:7px; overflow:hidden; gap:2px; background:var(--surface-2)}
+.stack .seg{
+  display:flex; align-items:center; justify-content:center; min-width:3px;
+  font-family:var(--display); font-size:11.5px; font-weight:700; color:#fff;
+  transition:filter .12s;
+}
+.stack .seg:hover{filter:brightness(1.12)}
+.stack .seg span{text-shadow:0 1px 2px rgba(0,0,0,.35)}
+.teto-card{border-left:4px solid var(--crit)}
+.teto-card .btn{margin-top:2px}
+.cen-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:14px; margin-top:14px}
+.cen-card{
+  background:var(--surface); border:1px solid var(--rule); border-top:3px solid var(--rule-strong);
+  border-radius:13px; padding:16px 17px; box-shadow:var(--shadow);
+}
+.cen-h{display:flex; align-items:center; gap:8px}
+.cen-h h4{font-size:15px; font-weight:700}
+.cen-dot{width:10px; height:10px; border-radius:3px; flex:none}
+.cen-desc{font-size:12.5px; color:var(--ink-3); margin:7px 0 14px; line-height:1.45}
+.cen-num{display:flex; align-items:baseline; gap:9px; flex-wrap:wrap; padding:9px 0; border-top:1px solid var(--rule)}
+.cen-num .k{font-size:11.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-3); font-weight:600; flex:1 0 100%}
+.cen-num .v{font-family:var(--display); font-size:25px; font-weight:700; letter-spacing:-.02em; font-variant-numeric:tabular-nums}
+.cen-num .d{font-size:12.5px; font-weight:600; font-variant-numeric:tabular-nums}
+.cen-num .d.up{color:var(--good-ink)} .cen-num .d.down{color:var(--crit-ink)}
+.cen-prem{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:14px; padding-top:14px; border-top:1px solid var(--rule)}
+.cen-prem label{display:flex; flex-direction:column; gap:4px; font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-3); font-weight:600}
+.cen-prem input{
+  border:1px solid var(--rule-strong); border-radius:7px; padding:6px 8px; background:var(--ground);
+  color:var(--ink); font-weight:600; font-variant-numeric:tabular-nums; width:100%; font-size:13.5px;
+}
+.cen-prem input:focus{outline:2px solid var(--accent); border-color:transparent}
+
+
+/* ---------- apresentação ---------- */
+.apres{
+  position:fixed; inset:0; z-index:60; background:var(--ground);
+  display:flex; flex-direction:column;
+}
+.apres[hidden]{display:none}
+.ap-top{
+  display:flex; align-items:center; gap:16px; padding:12px 26px;
+  border-bottom:1px solid var(--rule); flex-wrap:wrap;
+}
+.ap-marca{display:flex; align-items:center; gap:9px; font-size:14px}
+.ap-marca .brand-mark{width:4px; height:20px; background:var(--accent); border-radius:2px; display:block}
+.ap-nav{display:flex; gap:5px; margin-left:8px; flex-wrap:wrap; flex:1}
+.ap-dot{
+  border:1px solid var(--rule); background:transparent; color:var(--ink-3);
+  border-radius:99px; padding:3px 11px; font-size:11.5px; font-weight:600;
+  transition:background .14s, color .14s, border-color .14s;
+}
+.ap-dot:hover{background:var(--surface-2); color:var(--ink-2)}
+.ap-dot.on{background:var(--accent); border-color:var(--accent); color:var(--accent-ink)}
+.ap-pos{font-family:var(--display); font-size:12.5px; color:var(--ink-3); font-weight:700; font-variant-numeric:tabular-nums}
+.ap-corpo{flex:1; overflow-y:auto; padding:34px 26px; max-width:1180px; width:100%; margin:0 auto}
+.ap-baixo{
+  display:flex; gap:10px; justify-content:flex-end; padding:12px 26px;
+  border-top:1px solid var(--rule);
+}
+.ap-baixo .btn:disabled{opacity:.4; cursor:default}
+.ap-h{font-size:27px; font-weight:700; margin-bottom:20px; letter-spacing:-.02em}
+.ap-capa{padding:5vh 0 0}
+.ap-eyebrow{
+  font-family:var(--display); font-size:11.5px; font-weight:700; letter-spacing:.15em;
+  text-transform:uppercase; color:var(--accent);
+}
+.ap-titulo{font-size:clamp(38px,7vw,68px); font-weight:800; margin:12px 0 40px; letter-spacing:-.035em}
+.ap-capa-nums{display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:26px; max-width:900px}
+.ap-capa-nums .k{
+  display:block; font-size:11.5px; text-transform:uppercase; letter-spacing:.08em;
+  color:var(--ink-3); font-weight:600; margin-bottom:8px;
+}
+.ap-capa-nums .v{
+  display:block; font-family:var(--display); font-size:clamp(30px,4vw,46px);
+  font-weight:700; letter-spacing:-.03em; line-height:1;
+}
+.ap-nota{margin-top:38px; font-size:15px; color:var(--ink-2); max-width:56ch}
+.ap-pauta{display:flex; flex-direction:column; gap:12px}
+.ap-item{
+  display:flex; gap:16px; background:var(--surface); border:1px solid var(--rule);
+  border-left:4px solid var(--rule-strong); border-radius:12px; padding:17px 19px; box-shadow:var(--shadow);
+}
+.ap-item.crit{border-left-color:var(--crit)}
+.ap-item.warn{border-left-color:var(--warn)}
+.ap-n{
+  font-family:var(--display); font-size:19px; font-weight:800; color:var(--ink-3);
+  flex:none; width:26px; font-variant-numeric:tabular-nums;
+}
+.ap-item h3{font-size:16px; font-weight:700; display:inline; margin-right:10px}
+.ap-num{
+  font-family:var(--display); font-size:13px; font-weight:700; color:var(--ink-2);
+  font-variant-numeric:tabular-nums;
+}
+.ap-item p{margin:9px 0 0; font-size:13.5px; color:var(--ink-2); line-height:1.55; max-width:78ch}
+@media (max-width:640px){
+  .ap-top,.ap-corpo,.ap-baixo{padding-left:16px; padding-right:16px}
+  .ap-nav{order:3; width:100%}
+  .ap-h{font-size:21px}
+}
+
+/* ---------- table ---------- */
+/* Celulas de conferencia: ambar quando o declarado nao bate com o apurado,
+   cinza quando o professor ainda nao enviou. Nunca vermelho — a divergencia
+   e guia de processo, nao trava pagamento. */
+.warn-cell{color:var(--w-ink,#8a6300);background:var(--w-bg,rgba(181,122,6,.10));font-weight:600}
+.ok-cell{color:var(--o-ink,#0f7a4e);font-weight:600}
+.vazio-cell{color:var(--muted);font-style:italic}
+.tbl-wrap{overflow-x:auto; border:1px solid var(--rule); border-radius:13px; background:var(--surface)}
+.tbl-wrap td.wrap,.tbl-wrap th.wrap{white-space:normal; text-align:left; min-width:200px; max-width:340px}
+table{border-collapse:collapse; width:100%; font-size:13px; font-variant-numeric:tabular-nums}
+th,td{padding:9px 12px; text-align:right; white-space:nowrap; border-bottom:1px solid var(--rule)}
+th{
+  font-family:var(--display); font-size:10.5px; text-transform:uppercase; letter-spacing:.07em;
+  color:var(--ink-3); font-weight:700; background:var(--surface-2); position:sticky; top:0;
+}
+th:first-child,td:first-child{text-align:left; font-weight:600}
+tbody tr:last-child td{border-bottom:0}
+tbody tr:hover{background:var(--surface-2)}
+td.bad{color:var(--crit-ink); font-weight:600}
+td.ok{color:var(--good-ink); font-weight:600}
+
+/* ---------- form ---------- */
+.form{background:var(--surface); border:1px solid var(--rule); border-radius:13px; padding:20px; box-shadow:var(--shadow)}
+.fgrid{display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:13px}
+.fld{display:flex; flex-direction:column; gap:5px}
+.fld label{font-size:11.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-3); font-weight:600}
+.fld input,.fld select{
+  border:1px solid var(--rule-strong); border-radius:8px; padding:8px 10px; background:var(--ground);
+  color:var(--ink); font-variant-numeric:tabular-nums; font-weight:600; width:100%;
+}
+.fld input:focus,.fld select:focus{outline:2px solid var(--accent); outline-offset:0; border-color:transparent}
+.fld .hint{font-size:11.5px; color:var(--ink-3); font-weight:400; letter-spacing:0; text-transform:none; line-height:1.35}
+.fld{justify-content:flex-start}
+.fld label{min-height:15px}
+.fsep{grid-column:1/-1; border-top:1px solid var(--rule); margin:8px 0 2px; padding-top:14px;
+  font-family:var(--display); font-size:11px; text-transform:uppercase; letter-spacing:.11em; color:var(--accent); font-weight:700}
+.plano-row{display:grid; grid-template-columns:minmax(150px,1.4fr) 96px 116px 126px 38px; gap:9px; align-items:end; margin-bottom:9px; max-width:760px}
+@media (max-width:720px){.plano-row{grid-template-columns:1fr 1fr}}
+.prof-row{display:grid; grid-template-columns:minmax(160px,1fr) 116px 116px 38px; gap:9px; align-items:end; margin-bottom:9px; max-width:640px}
+.icon-btn{border:1px solid var(--rule-strong); background:var(--surface); border-radius:8px; height:37px; color:var(--ink-3); font-size:16px; line-height:1}
+.icon-btn:hover{background:var(--crit-soft); color:var(--crit-ink); border-color:var(--crit)}
+.actions{display:flex; gap:10px; margin-top:20px; flex-wrap:wrap; align-items:center}
+.warnbox{background:var(--crit-soft); color:var(--crit-ink); border-radius:9px; padding:11px 14px; font-size:13px; font-weight:600; margin-top:14px}
+.okbox{background:var(--good-soft); color:var(--good-ink); border-radius:9px; padding:11px 14px; font-size:13px; font-weight:600; margin-top:14px}
+details.meta-d{margin-top:14px; border-top:1px solid var(--rule); padding-top:14px}
+details.meta-d summary{cursor:pointer; font-size:13px; font-weight:600; color:var(--ink-2)}
+footer{padding:44px 0 60px; color:var(--ink-3); font-size:12.5px; border-top:1px solid var(--rule); margin-top:44px}
+footer b{color:var(--ink-2)}
+@media (max-width:640px){
+  .tile .val{font-size:27px}
+  .fstage,.fgap{grid-template-columns:92px 1fr}
+  .prof-row{grid-template-columns:1fr 1fr; }
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important; animation:none!important}}
+
+.pz-wrap{display:flex;gap:26px;align-items:center;flex-wrap:wrap;margin:6px 0 4px}
+.pz-svg{width:200px;height:200px;flex:0 0 auto}
+.pz-tot{font-size:19px;font-weight:800;fill:var(--ink);font-family:inherit}
+.pz-cap{font-size:10px;fill:var(--ink-3);letter-spacing:.08em;text-transform:uppercase;font-family:inherit}
+.pz-leg{flex:1 1 260px;min-width:0;display:flex;flex-direction:column;gap:7px}
+.pz-item{display:grid;grid-template-columns:12px 1fr auto auto;gap:10px;align-items:baseline;font-size:13.5px}
+.pz-cor{width:11px;height:11px;border-radius:3px;display:block;align-self:center}
+.pz-nome{color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pz-val{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.pz-pct{color:var(--ink-3);font-variant-numeric:tabular-nums;white-space:nowrap;min-width:44px;text-align:right}
+@media(max-width:560px){.pz-wrap{gap:16px}.pz-svg{width:170px;height:170px;margin:0 auto}}
+</style>
+</head>
+<body>
+
+
+<div class="top">
+  <div class="top-in">
+    <div class="brand">
+      <div class="brand-mark"></div>
+      <div>
+        <h1>Placar da Alliance SJC</h1>
+        <p>Relatório gerencial · sócios</p>
+      </div>
+    </div>
+    <div class="msel">
+      <label for="mesSel">Mês</label>
+      <select id="mesSel"></select>
+    </div>
+    <button class="btn" id="btnApres">Apresentar</button>
+    <button class="btn" id="btnLancar">Lançar mês</button>
+    <span class="saveflag" id="saveflag"></span>
+    <span class="stamp" id="stamp" hidden></span>
+  </div>
+</div>
+
+<div class="demo" id="demoBar" hidden>
+  <div class="wrap">
+    <span>Você está vendo dados de demonstração — nada aqui é real e nada foi salvo.</span>
+    <button class="btn btn-sm" id="btnSairDemo">Sair da demonstração</button>
+  </div>
+</div>
+
+<div class="wrap" id="app"></div>
+
+<div class="wrap" id="formZone"></div>
+
+<div class="wrap">
+  <footer>
+    <b>Como este painel é alimentado.</b> Todo dia 1º, exporte do EVO o movimento do mês anterior e lance os números em "Lançar mês" — leva cerca de cinco minutos.
+    O painel calcula churn, crescimento líquido, ticket médio, funil e conversão por professor sozinho, e guarda o histórico para os três sócios verem o mesmo número.
+  </footer>
+</div>
+
+<div class="apres" id="apres" hidden>
+  <div class="ap-top">
+    <div class="ap-marca"><span class="brand-mark"></span><b>Alliance SJC</b></div>
+    <div class="ap-nav" id="ap-nav"></div>
+    <span class="ap-pos" id="ap-pos"></span>
+    <button class="btn btn-sm" id="ap-fechar">Sair · Esc</button>
+  </div>
+  <div class="ap-corpo" id="ap-corpo"></div>
+  <div class="ap-baixo">
+    <button class="btn btn-sm" id="ap-prev">← Anterior</button>
+    <button class="btn btn-sm btn-primary" id="ap-next">Próximo →</button>
+  </div>
+</div>
+
+<div class="tip" id="tip"></div>
+
+<script>
+(function(){
+"use strict";
+
+/* ============ formatação ============ */
+const nf0 = new Intl.NumberFormat('pt-BR',{maximumFractionDigits:0});
+const nf1 = new Intl.NumberFormat('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
+const nf2 = new Intl.NumberFormat('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const N  = v => (v===null||v===undefined||!isFinite(v)) ? '—' : nf0.format(v);
+const P  = v => (v===null||v===undefined||!isFinite(v)) ? '—' : nf1.format(v)+'%';
+const RS = v => (v===null||v===undefined||!isFinite(v)) ? '—' : 'R$ '+nf0.format(v);
+const RS2= v => (v===null||v===undefined||!isFinite(v)) ? '—' : 'R$ '+nf2.format(v);
+const MESES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+const rotulo = m => { const [a,b]=m.split('-'); return MESES[(+b)-1]+'/'+a.slice(2); };
+const rotuloLongo = m => { const [a,b]=m.split('-'); return MESES[(+b)-1].replace(/^./,c=>c.toUpperCase())+' de '+a; };
+const div = (a,b) => ((a==null || !isFinite(a) || !(b>0)) ? null : a/b);
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* ============ estado ============ */
+const METAS_PADRAO = {
+  churnBom:4, churnLim:6,
+  crescBom:2, crescLim:0,
+  noShowBom:20, noShowLim:35,
+  convBom:60, convLim:40,
+  inadBom:3, inadLim:6,
+  ticketMeta:0
+};
+const VAZIO = { versao:1, metas:{...METAS_PADRAO}, meses:[], cenarios:null, horizonte:12, teto:350, valorAula:30 };
+const CAMPOS = ['alunosInicio','alunos','contratos','novos','retornos','cancelamentos','inadimplentes','valorInad','mrr','leads','agendadas','realizadas','matriculas','invMkt'];
+
+let state = JSON.parse(JSON.stringify(VAZIO));
+let demo = null;              // dataset de demonstração (não salvo)
+let mesAtivo = null;
+let editando = null;          // chave do mês em edição, ou null
+let artefato = undefined;     // undefined = ainda carregando, null = indisponível
+
+const dados = () => demo ? demo : state;
+const tetoAtual = () => { const t = dados().teto; return (t!=null && isFinite(+t) && +t>0) ? +t : 350; };
+const valorAula = () => { const v = dados().valorAula; return (v!=null && isFinite(+v) && +v>0) ? +v : 30; };
+
+
+/* ============ histórico reconstruído (2020–2026) ============
+   A EVO não guarda a base de alunos de um mês passado, mas guarda todos os contratos com
+   data de início e de fim. Varrendo os 9.525 contratos da escola desde 2020, um aluno conta
+   como ativo num mês se tinha contrato de pé naquele mês — fora VIP e fora cortesia, a mesma
+   regra de hoje. Daí saem base, novos (primeiro contrato da vida), retornos (voltou depois de
+   um intervalo) e saídas (deixou de ter contrato, tendo cancelado formalmente ou apenas
+   deixado vencer). A conta fecha mês a mês: base = base anterior + novos + retornos − saídas.
+   Receita não entra: o valor do contrato na EVO é o valor cheio, não a mensalidade, então
+   somá-lo daria um MRR falso. Os meses reconstruídos aparecem marcados na tabela. */
+const HISTORICO = [
+  ["2020-03",4,4,0,0],["2020-04",4,0,0,0],["2020-05",4,0,0,0],["2020-06",15,11,0,0],
+  ["2020-07",24,9,0,0],["2020-08",26,5,0,3],["2020-09",33,8,0,1],["2020-10",35,4,0,2],
+  ["2020-11",41,7,0,1],["2020-12",44,5,1,3],["2021-01",52,12,0,4],["2021-02",58,7,0,1],
+  ["2021-03",62,4,0,0],["2021-04",62,2,0,2],["2021-05",66,4,1,1],["2021-06",67,3,0,2],
+  ["2021-07",71,5,0,1],["2021-08",82,13,1,3],["2021-09",90,10,0,2],["2021-10",83,4,0,11],
+  ["2021-11",86,7,3,7],["2021-12",85,2,0,3],["2022-01",92,13,2,8],["2022-02",91,10,3,14],
+  ["2022-03",93,7,1,6],["2022-04",94,7,1,7],["2022-05",99,9,1,5],["2022-06",105,10,0,4],
+  ["2022-07",104,3,3,7],["2022-08",110,14,1,9],["2022-09",106,5,1,10],["2022-10",112,14,1,9],
+  ["2022-11",110,9,1,12],["2022-12",110,5,1,6],["2023-01",117,13,2,8],["2023-02",117,6,1,7],
+  ["2023-03",116,11,2,14],["2023-04",121,8,1,4],["2023-05",128,10,1,4],["2023-06",131,8,0,5],
+  ["2023-07",130,8,0,9],["2023-08",135,8,3,6],["2023-09",131,3,1,8],["2023-10",132,8,1,8],
+  ["2023-11",132,6,0,6],["2023-12",129,5,0,8],["2024-01",137,10,1,3],["2024-02",140,9,0,6],
+  ["2024-03",139,5,1,7],["2024-04",142,6,2,5],["2024-05",140,5,3,10],["2024-06",141,12,1,12],
+  ["2024-07",145,6,3,5],["2024-08",146,7,3,9],["2024-09",153,12,1,6],["2024-10",154,3,2,4],
+  ["2024-11",157,8,1,6],["2024-12",151,1,0,7],["2025-01",172,25,4,8],["2025-02",172,12,0,12],
+  ["2025-03",171,8,1,10],["2025-04",174,8,1,6],["2025-05",182,15,1,8],["2025-06",178,8,1,13],
+  ["2025-07",187,10,2,3],["2025-08",197,15,3,8],["2025-09",206,17,0,8],["2025-10",209,17,0,14],
+  ["2025-11",220,12,4,5],["2025-12",229,13,2,6],["2026-01",247,21,3,6],["2026-02",267,24,5,9],
+  ["2026-03",268,13,3,15],["2026-04",275,21,0,14],["2026-05",273,9,0,11],["2026-06",274,15,1,15],
+  ["2026-07",279,17,1,13],["2026-08",283,11,0,7]
+];
+
+function semearHistorico(meses){
+  const tem = {}; for(const m of meses) tem[m.mes] = 1;
+  const novos = [];
+  for(const [mes, alunos, n, r, s] of HISTORICO){
+    if(tem[mes]) continue;
+    novos.push({ mes, historico:true, alunos, novos:n, retornos:r, cancelamentos:s,
+      contratos:null, mrr:null, leads:null, agendadas:null, realizadas:null, matriculas:null,
+      inadimplentes:null, valorInad:null, invMkt:0, professores:[], planos:[] });
+  }
+  if(!novos.length) return meses;
+  return meses.concat(novos).sort((a,b)=>a.mes.localeCompare(b.mes));
+}
+
+/* ============ cálculos ============ */
+function derivar(m, anterior){
+  const d = {...m};
+  const ini = (m.alunosInicio!=null && m.alunosInicio>0) ? m.alunosInicio : (anterior ? anterior.alunos : null);
+  d.inicio = ini;
+  d.movimento = (m.novos||0) + (m.retornos||0) - (m.cancelamentos||0);
+  d.crescPct  = ini ? d.movimento/ini*100 : null;
+  d.churnPct  = ini ? (m.cancelamentos||0)/ini*100 : null;
+  d.permanencia = (d.churnPct>0) ? 100/d.churnPct : null;
+  d.ticket    = div(m.mrr, m.alunos);
+  d.contratosAluno = div(m.contratos, m.alunos);
+  d.noShow    = m.agendadas>0 ? (1 - (m.realizadas||0)/m.agendadas)*100 : null;
+  d.compPct   = m.agendadas>0 ? (m.realizadas||0)/m.agendadas*100 : null;
+  /* a matricula do funil e a pessoa que fez a experimental e hoje esta com plano ativo.
+     Nao e novos + retornos: quem entra por indicacao direta, sem experimental, nao passa
+     por aqui. Mes lancado na mao, sem esse campo, cai no numero antigo. */
+  d.matriculasFunil = (m.matriculasExp!=null) ? m.matriculasExp : (m.matriculas||0);
+  d.convExp   = m.realizadas>0 ? (d.matriculasFunil||0)/m.realizadas*100 : null;
+  d.convLead  = m.leads>0 ? (m.agendadas||0)/m.leads*100 : null;
+  d.convTotal = m.leads>0 ? (d.matriculasFunil||0)/m.leads*100 : null;
+  d.cac       = div(m.invMkt, d.matriculasFunil);
+  d.inadPct   = div(m.valorInad, m.mrr); if(d.inadPct!=null) d.inadPct*=100;
+  d.receitaPerdida = (d.ticket!=null) ? d.ticket*(m.cancelamentos||0) : null;
+  d.historico = !!m.historico;
+  /* na virada do mes reconstruido para o mes medido ao vivo as duas contagens divergem um
+     pouco (a reconstrucao conta contrato que vence no meio do mes; a regra ao vivo nao),
+     entao o teste de consistencia nao vale nessa costura */
+  const costura = !!(anterior && anterior.historico && !m.historico);
+  d.fecha = (ini!=null && !costura) ? (ini + (m.novos||0) + (m.retornos||0) - (m.cancelamentos||0)) === m.alunos : null;
+  d.esperado = (ini!=null) ? ini + (m.novos||0) + (m.retornos||0) - (m.cancelamentos||0) : null;
+  return d;
+}
+function serie(){
+  const ms = semearHistorico([...dados().meses]).sort((a,b)=>a.mes.localeCompare(b.mes));
+  const out = [];
+  ms.forEach((m,i)=> out.push(derivar(m, i>0 ? ms[i-1] : null)));
+  return out;
+}
+/* semáforo: dir 'menor' = quanto menor melhor */
+function sem(v, bom, lim, dir){
+  if(v==null || !isFinite(v)) return 'mute';
+  if(dir==='menor') return v<=bom ? 'good' : (v<=lim ? 'warn' : 'crit');
+  return v>=bom ? 'good' : (v>=lim ? 'warn' : 'crit');
+}
+const ROTULO_SEM = {good:'No alvo', warn:'Atenção', crit:'Fora do alvo', mute:'Sem dado'};
+
+/* ============ tooltip ============ */
+const tipEl = document.getElementById('tip');
+function mostraTip(html, x, y){ tipEl.innerHTML = html; tipEl.style.left = x+'px'; tipEl.style.top = y+'px'; tipEl.style.opacity = '1'; }
+function escondeTip(){ tipEl.style.opacity = '0'; }
+
+/* ============ gráfico de linha ============ */
+function grafLinha(pontos, cor, corSoft, fmt, titulo){
+  const W=560, H=190, ml=52, mr=16, mt=14, mb=28;
+  const vals = pontos.map(p=>p.v).filter(v=>v!=null&&isFinite(v));
+  if(vals.length<1) return '<div class="empty" style="padding:26px">Ainda não há dados suficientes.</div>';
+  let min = Math.min(...vals), max = Math.max(...vals);
+  if(min===max){ min = min*0.9; max = max*1.1 || 1; }
+  const pad = (max-min)*0.18; min = Math.max(0, min-pad); max = max+pad;
+  const iw = W-ml-mr, ih = H-mt-mb;
+  const X = i => ml + (pontos.length<2 ? iw/2 : i*iw/(pontos.length-1));
+  const Y = v => mt + ih - (v-min)/(max-min)*ih;
+  const validos = pontos.map((p,i)=>({...p,i})).filter(p=>p.v!=null&&isFinite(p.v));
+  const linha = validos.map((p,k)=> (k?'L':'M')+X(p.i).toFixed(1)+' '+Y(p.v).toFixed(1)).join(' ');
+  const area  = linha + ' L'+X(validos[validos.length-1].i).toFixed(1)+' '+(mt+ih)+' L'+X(validos[0].i).toFixed(1)+' '+(mt+ih)+' Z';
+  const ticks = [min, (min+max)/2, max];
+  let g = '';
+  ticks.forEach(t=>{
+    g += '<line x1="'+ml+'" x2="'+(W-mr)+'" y1="'+Y(t).toFixed(1)+'" y2="'+Y(t).toFixed(1)+'" stroke="var(--grid)" stroke-width="1"/>';
+    g += '<text x="'+(ml-9)+'" y="'+(Y(t)+4).toFixed(1)+'" text-anchor="end" font-size="10.5" fill="var(--ink-3)" style="font-variant-numeric:tabular-nums">'+fmt(t)+'</text>';
+  });
+  let xl = '';
+  const passo = Math.ceil(pontos.length/7);
+  const ultimo = pontos.length-1;
+  pontos.forEach((p,i)=>{
+    const ehUltimo = i===ultimo;
+    /* rotulo periodico que cai perto do ultimo fica por cima dele; some com ele */
+    if(!ehUltimo && (i%passo!==0 || (ultimo-i) < passo*0.6)) return;
+    xl += '<text x="'+X(i).toFixed(1)+'" y="'+(H-8)+'" text-anchor="middle" font-size="10.5" fill="var(--ink-3)">'+rotulo(p.m)+'</text>'; });
+  const ult = validos[validos.length-1];
+  let hits = '';
+  pontos.forEach((p,i)=>{
+    if(p.v==null||!isFinite(p.v)) return;
+    hits += '<rect x="'+(X(i)-iw/(2*Math.max(1,pontos.length-1))-2).toFixed(1)+'" y="'+mt+'" width="'+(iw/Math.max(1,pontos.length-1)+4).toFixed(1)+'" height="'+ih+'" fill="transparent"'
+      + ' data-cx="'+X(i).toFixed(1)+'" data-cy="'+Y(p.v).toFixed(1)+'" data-tip="'+esc('<b>'+fmt(p.v)+'</b><br>'+rotuloLongo(p.m))+'"/>';
+  });
+  return '<div class="chartbox"><svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+esc(titulo)+'">'
+    + g
+    + '<path d="'+area+'" fill="'+corSoft+'"/>'
+    + '<path d="'+linha+'" fill="none" stroke="'+cor+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'
+    + '<circle cx="'+X(ult.i).toFixed(1)+'" cy="'+Y(ult.v).toFixed(1)+'" r="4.5" fill="'+cor+'" stroke="var(--surface)" stroke-width="2"/>'
+    + '<g class="hits">'+hits+'</g>'
+    + '<circle class="cursor" r="4.5" fill="'+cor+'" stroke="var(--surface)" stroke-width="2" opacity="0"/>'
+    + xl + '</svg></div>';
+}
+
+/* ============ gráfico de movimento (entradas x saídas) ============ */
+function grafMovimento(s){
+  const W=560, H=210, ml=44, mr=14, mt=14, mb=30;
+  if(!s.length) return '<div class="empty" style="padding:26px">Ainda não há dados.</div>';
+  const ent = s.map(d=>(d.novos||0)+(d.retornos||0));
+  const sai = s.map(d=>(d.cancelamentos||0));
+  const max = Math.max(1, ...ent, ...sai);
+  const iw=W-ml-mr, ih=H-mt-mb, meio = mt+ih/2, semi = ih/2;
+  const passoX = iw/s.length, larg = Math.min(24, passoX*0.42);
+  let g='', barras='';
+  [max, max/2, 0, -max/2, -max].forEach(t=>{
+    const y = meio - (t/max)*semi;
+    g += '<line x1="'+ml+'" x2="'+(W-mr)+'" y1="'+y.toFixed(1)+'" y2="'+y.toFixed(1)+'" stroke="'+(t===0?'var(--axis)':'var(--grid)')+'" stroke-width="1"/>';
+    g += '<text x="'+(ml-8)+'" y="'+(y+4).toFixed(1)+'" text-anchor="end" font-size="10.5" fill="var(--ink-3)">'+N(Math.abs(Math.round(t)))+'</text>';
+  });
+  s.forEach((d,i)=>{
+    const cx = ml + passoX*(i+0.5);
+    const he = ent[i]/max*semi, hs = sai[i]/max*semi;
+    barras += '<rect x="'+(cx-larg-1).toFixed(1)+'" y="'+(meio-he).toFixed(1)+'" width="'+larg.toFixed(1)+'" height="'+Math.max(0,he).toFixed(1)+'" rx="4" fill="var(--s1)"'
+      + ' data-tip="'+esc('<b>'+N(ent[i])+' entradas</b><br>'+N(d.novos||0)+' novos · '+N(d.retornos||0)+' retornos<br>'+rotuloLongo(d.mes))+'"/>';
+    barras += '<rect x="'+(cx+1).toFixed(1)+'" y="'+meio.toFixed(1)+'" width="'+larg.toFixed(1)+'" height="'+Math.max(0,hs).toFixed(1)+'" rx="4" fill="var(--sneg)"'
+      + ' data-tip="'+esc('<b>'+N(sai[i])+' cancelamentos</b><br>churn '+P(d.churnPct)+'<br>'+rotuloLongo(d.mes))+'"/>';
+    const pass = Math.ceil(s.length/7), ult = s.length-1;
+    if(i===ult || (i%pass===0 && (ult-i) >= pass*0.6))
+      barras += '<text x="'+cx.toFixed(1)+'" y="'+(H-8)+'" text-anchor="middle" font-size="10.5" fill="var(--ink-3)">'+rotulo(d.mes)+'</text>';
+  });
+  return '<div class="chartbox"><svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Entradas e cancelamentos por mês">'+g+barras+'</svg></div>';
+}
+
+/* ============ barras horizontais (professores) ============ */
+function grafProfessores(profs){
+  if(!profs || !profs.length) return '<div class="empty" style="padding:26px">Nenhum professor lançado neste mês.</div>';
+  const linhas = profs.map(p=>({
+    nome:p.nome||'—',
+    realizadas:+p.realizadas||0,
+    fechadas:+p.fechadas||0,
+    conv: (+p.realizadas>0) ? (+p.fechadas)/(+p.realizadas)*100 : null
+  })).sort((a,b)=>(b.conv??-1)-(a.conv??-1));
+  const max = Math.max(100, ...linhas.map(l=>l.conv||0));
+  return '<div class="funnel">' + linhas.map(l=>{
+    const w = l.conv!=null ? Math.max(2, l.conv/max*100) : 0;
+    return '<div class="fstage"><div class="fl">'+esc(l.nome)+'</div>'
+      + '<div style="display:flex;align-items:center;gap:9px">'
+      + '<div class="fbar" style="width:'+w+'%;background:var(--s1)">'+(l.conv!=null?nf0.format(l.conv)+'%':'—')+'</div>'
+      + '<span style="font-size:12px;color:var(--ink-3);white-space:nowrap">'+N(l.fechadas)+' de '+N(l.realizadas)+'</span>'
+      + '</div></div>';
+  }).join('') + '</div>';
+}
+
+/* ============ rosca de composicao (receita por servico) ============ */
+function grafPizza(itens, rotuloCentro){
+  const ds = (itens||[]).filter(x=>+x.valor>0).sort((a,b)=>(+b.valor)-(+a.valor));
+  if(!ds.length) return '';
+  const tot = ds.reduce((t,x)=>t+(+x.valor),0);
+  if(!(tot>0)) return '';
+  const R=104, r=64, cx=120, cy=120;
+  let ang = -Math.PI/2, fatias='';
+  ds.forEach((x,i)=>{
+    const frac = (+x.valor)/tot;
+    const cor = 'var(--pz'+((i%7)+1)+')';
+    if(frac > 0.9995){
+      /* uma categoria so: anel inteiro, arco de 360 graus nao fecha em path */
+      fatias += '<circle cx="'+cx+'" cy="'+cy+'" r="'+((R+r)/2)+'" fill="none" stroke="'+cor+'" stroke-width="'+(R-r)+'"/>';
+      return;
+    }
+    const a2 = ang + frac*Math.PI*2;
+    const grande = frac > 0.5 ? 1 : 0;
+    const px = (a,rad)=>(cx+Math.cos(a)*rad).toFixed(2)+' '+(cy+Math.sin(a)*rad).toFixed(2);
+    fatias += '<path d="M'+px(ang,R)+' A'+R+' '+R+' 0 '+grande+' 1 '+px(a2,R)
+      + ' L'+px(a2,r)+' A'+r+' '+r+' 0 '+grande+' 0 '+px(ang,r)+' Z" fill="'+cor+'"'
+      + ' stroke="var(--surface)" stroke-width="2"/>';
+    ang = a2;
+  });
+  const legenda = ds.map((x,i)=>'<div class="pz-item">'
+    + '<span class="pz-cor" style="background:var(--pz'+((i%7)+1)+')"></span>'
+    + '<span class="pz-nome">'+esc(x.nome)+'</span>'
+    + '<span class="pz-val">'+RS(x.valor)+'</span>'
+    + '<span class="pz-pct">'+P(x.valor/tot*100)+'</span></div>').join('');
+  return '<div class="pz-wrap">'
+    + '<svg viewBox="0 0 240 240" class="pz-svg" role="img" aria-label="Proporcao da receita por servico">'
+    + fatias
+    + '<text x="120" y="114" text-anchor="middle" class="pz-tot">'+RS(tot)+'</text>'
+    + '<text x="120" y="134" text-anchor="middle" class="pz-cap">'+esc(rotuloCentro||'no mes')+'</text>'
+    + '</svg><div class="pz-leg">'+legenda+'</div></div>';
+}
+
+/* ============ blocos de render ============ */
+function tile(lab, val, semaforo, rodape){
+  return '<div class="tile"><div class="stripe '+semaforo+'"></div>'
+    + '<div class="lab">'+esc(lab)+'</div>'
+    + '<div class="val">'+val+'</div>'
+    + '<div class="foot">'+(rodape||'')+'</div></div>';
+}
+function chip(s, texto){ return '<span class="chip '+s+'"><span class="dot"></span>'+esc(texto||ROTULO_SEM[s])+'</span>'; }
+function delta(atual, ant, fmt, maiorMelhor){
+  if(atual==null||ant==null||!isFinite(atual)||!isFinite(ant)) return '<span class="delta flat">sem comparação</span>';
+  const d = atual-ant;
+  if(Math.abs(d) < 1e-9) return '<span class="delta flat">igual ao mês anterior</span>';
+  const bom = maiorMelhor ? d>0 : d<0;
+  const seta = d>0 ? '▲' : '▼';
+  return '<span class="delta '+(bom?'up':'down')+'">'+seta+' '+fmt(Math.abs(d))+'</span> <span style="color:var(--ink-3)">vs. mês anterior</span>';
+}
+
+function blocoPlacar(d, ant, metas){
+  const sChurn = sem(d.churnPct, metas.churnBom, metas.churnLim, 'menor');
+  const sCresc = sem(d.crescPct, metas.crescBom, metas.crescLim, 'maior');
+  const sInad  = sem(d.inadPct,  metas.inadBom,  metas.inadLim,  'menor');
+  const sConv  = sem(d.convExp,  metas.convBom,  metas.convLim,  'maior');
+  return '<div class="tiles placar">'
+   + tile('Alunos ativos', N(d.alunos), 'mute',
+       delta(d.alunos, ant?ant.alunos:null, N, true))
+   + tile('Crescimento líquido', P(d.crescPct), sCresc,
+       chip(sCresc)+'<span>'+(d.movimento>=0?'+':'')+N(d.movimento)+' alunos</span>')
+   + tile('Churn do mês', P(d.churnPct), sChurn,
+       chip(sChurn)+'<span>'+N(d.cancelamentos)+' saídas</span>')
+   + tile('Receita recorrente', RS(d.mrr), d.mrr?'mute':'mute',
+       delta(d.mrr, ant?ant.mrr:null, RS, true))
+   + tile('Ticket médio', RS2(d.ticket), metas.ticketMeta>0 ? sem(d.ticket, metas.ticketMeta, metas.ticketMeta*0.92,'maior') : 'mute',
+       delta(d.ticket, ant?ant.ticket:null, RS2, true))
+   + tile('Inadimplência', P(d.inadPct), sInad,
+       chip(sInad)+'<span>'+RS(d.valorInad)+' · '+N(d.inadimplentes)+' alunos</span>')
+   + '</div>';
+}
+
+function blocoEquacao(d){
+  const ok = d.fecha;
+  const item = (k,v,cls)=> '<div class="eq-i"><span class="k">'+k+'</span><span class="v" '+(cls||'')+'>'+v+'</span></div>';
+  let res;
+  if(ok===null) res = '<div class="eq-i eq-res"><span class="k">Consistência</span><span class="v">'+chip('mute','Faltam dados')+'</span></div>';
+  else if(ok) res = '<div class="eq-i eq-res"><span class="k">Consistência</span><span class="v">'+chip('good','A conta fecha')+'</span></div>';
+  else res = '<div class="eq-i eq-res"><span class="k">Consistência</span><span class="v">'+chip('crit','Diferença de '+N(Math.abs(d.esperado-d.alunos))+' alunos')+'</span></div>';
+  return '<div class="eq">'
+    + item('Início do mês', N(d.inicio))
+    + '<span class="eq-op">+</span>' + item('Novos', N(d.novos))
+    + '<span class="eq-op">+</span>' + item('Retornos', N(d.retornos))
+    + '<span class="eq-op">−</span>' + item('Cancelamentos', N(d.cancelamentos))
+    + '<span class="eq-op">=</span>' + item('Fim do mês', N(d.alunos))
+    + res + '</div>';
+}
+
+function blocoFunil(d, metas){
+  /* O funil conta PESSOA em toda a régua. Antes ele misturava sessão com
+     pessoa: quem faz duas experimentais aparecia duas vezes no meio e uma só
+     no fim, e a taxa saía menor do que a realidade. As sessões continuam
+     visíveis logo abaixo, como número de operação. */
+  const fdx = ((dados()||{}).detalhe||{}).funil_diagnostico || {};
+  const pessoasExp = (fdx.no_mes && fdx.no_mes.pessoas!=null) ? +fdx.no_mes.pessoas : (+d.realizadas||0);
+  const etapas = [
+    {k:'Contatos / leads', v:d.leads, c:'var(--f1)', t:'#0b2545'},
+    {k:'Pessoas que fizeram a experimental', v:pessoasExp, c:'var(--f3)', t:'#ffffff'},
+    {k:'Matrículas vindas da experimental', v:d.matriculasFunil, c:'var(--f4)', t:'#ffffff'}
+  ];
+  const max = Math.max(1, ...etapas.map(e=>+e.v||0));
+  const pct = (a,b)=> (b>0 ? a/b*100 : null);
+  const taxas = [
+    {t:'chegaram ao tatame', v:pct(pessoasExp, +d.leads||0)},
+    {t:'fecharam', v:pct(+d.matriculasFunil||0, pessoasExp)}
+  ];
+  let html = '<div class="funnel">';
+  etapas.forEach((e,i)=>{
+    const w = Math.max(3, (+e.v||0)/max*100);
+    html += '<div class="fstage"><div class="fl">'+e.k+'</div>'
+      + '<div class="fbar" style="width:'+w+'%;background:'+e.c+';color:'+e.t+'">'+N(e.v)+'</div></div>';
+    if(i<etapas.length-1) html += '<div class="fgap"><div></div><div class="fr">↓ <b>'+P(taxas[i].v)+'</b> '+taxas[i].t+'</div></div>';
+  });
+  html += '</div>';
+
+  const fd = ((dados()||{}).detalhe||{}).funil_diagnostico;
+
+  if(fd && fd.no_mes){
+    const sess = +fd.no_mes.agendadas||0, real = +fd.no_mes.realizadas||0, pes = +fd.no_mes.pessoas||0;
+    if(sess !== pes) html += '<p class="note" style="margin-top:12px">Na régua acima cada pessoa conta uma vez. '
+      + 'Na agenda do EVO foram <b>'+N(sess)+' sessões</b> marcadas e <b>'+N(real)+'</b> realizadas para <b>'+N(pes)+' pessoas</b> — '
+      + 'a diferença é gente que fez mais de uma aula antes de decidir. A taxa de conversão usa pessoa; a operação da grade usa sessão.</p>';
+  }
+
+  if(fd && fd.fila_truncada){
+    html += '<div class="alerta" style="margin-top:16px"><b>O funil deste período está incompleto.</b> '
+      + 'A coleta precisava consultar a agenda de '+N(fd.fila_planejada)+' pessoas e só coube '+N(fd.pessoas_consultadas)+' no tempo de execução — '
+      + N(fd.pessoas_que_ficaram_de_fora)+' ficaram de fora. As experimentais dessas pessoas não estão contadas aqui, '
+      + 'então os números abaixo são um piso, não o total.</div>';
+  }
+
+  if(fd && fd.sem_registro_de_experimental){
+    html += '<div class="alerta" style="margin-top:16px"><b>Nenhuma aula introdutória foi encontrada no período.</b> '
+      + 'Foram consultadas '+N(fd.pessoas_consultadas)+' pessoas, entre leads e alunos recentes, e nenhuma tinha sessão marcada na agenda. '
+      + 'Ou não houve introdutória mesmo, ou ela foi dada sem estar agendada no EVO — nesse caso o funil mede menos do que aconteceu.</div>';
+  }
+
+  const sNS = sem(d.noShow, metas.noShowBom, metas.noShowLim, 'menor');
+  const sCv = sem(d.convExp, metas.convBom, metas.convLim, 'maior');
+  html += '<div class="tiles" style="margin-top:18px">'
+    + tile('No-show da experimental', P(d.noShow), sNS, chip(sNS)+'<span>'+N((d.agendadas||0)-(d.realizadas||0))+' não apareceram</span>')
+    + (fd && fd.no_mes ? tile('Faltas registradas', N(fd.no_mes.faltas), 'mute', '<span>marcadas como falta na agenda do EVO</span>') : '')
+    + (fd && fd.complementares_no_mes ? tile('Aulas complementares', N(fd.complementares_no_mes), 'mute', '<span>aula 2 e 3 da metodologia, fora do funil</span>') : '')
+    + tile('Conversão da experimental', P(d.convExp), sCv, chip(sCv)+'<span>média da casa</span>')
+    + tile('Conversão de ponta a ponta', P(d.convTotal), 'mute', '<span>do primeiro contato à matrícula</span>')
+    + tile('Custo por matrícula', RS2(d.cac), 'mute', '<span>investimento ÷ matrículas</span>')
+    + '</div>';
+  const fora = (d.matriculas||0) - (d.matriculasFunil||0);
+  if(fora > 0) html += '<p class="note" style="margin-top:12px">O mês fechou com <b>'+N(d.matriculas)+'</b> entradas (novos + retornos), '
+    + 'mas só <b>'+N(d.matriculasFunil)+'</b> passaram pela aula experimental. As outras <b>'+N(fora)+'</b> entraram direto — '
+    + 'indicação, retorno de ex-aluno ou matrícula de balcão. O funil mede só a porta da experimental.</p>';
+  return html;
+}
+
+function blocoMeta(s, metas){
+  const d = s[s.length-1];
+  const hist = s.slice(-3);
+  const churnMed = hist.map(x=>x.churnPct).filter(x=>x!=null);
+  const cm = churnMed.length ? churnMed.reduce((a,b)=>a+b,0)/churnMed.length : null;
+  const convs = s.slice(-3).map(x=>x.convExp).filter(x=>x!=null);
+  const conv = convs.length ? convs.reduce((a,b)=>a+b,0)/convs.length : null;
+  const comps = s.slice(-3).map(x=>x.compPct).filter(x=>x!=null);
+  const comp = comps.length ? comps.reduce((a,b)=>a+b,0)/comps.length : null;
+  const cls  = s.slice(-3).map(x=>x.convLead).filter(x=>x!=null);
+  const cl   = cls.length ? cls.reduce((a,b)=>a+b,0)/cls.length : null;
+  if(cm==null || !d.alunos) return '';
+  const perdas = d.alunos*cm/100;
+  const meta   = d.alunos*metas.crescBom/100;
+  const precisa = perdas + meta;
+  const realizadas = conv ? precisa/(conv/100) : null;
+  const agendadas  = (realizadas!=null && comp) ? realizadas/(comp/100) : null;
+  const leads      = (agendadas!=null && cl) ? agendadas/(cl/100) : null;
+  const porDiaUtil = agendadas!=null ? agendadas/22 : null;
+  return '<div class="card"><h3>Quanto precisa entrar mês que vem</h3>'
+    + '<p class="note">Com a base de <b>'+N(d.alunos)+'</b> alunos, churn médio de <b>'+P(cm)+'</b> nos últimos meses e a meta de <b>'+P(metas.crescBom)+'</b> de crescimento líquido.</p>'
+    + '<div class="tiles">'
+    + tile('Só para não encolher', N(Math.ceil(perdas))+' <small>entradas</small>', 'mute', '<span>repõe os cancelamentos esperados</span>')
+    + tile('Para bater a meta', N(Math.ceil(precisa))+' <small>entradas</small>', 'mute', '<span>novos + retornos no mês</span>')
+    + tile('Experimentais necessárias', (realizadas!=null? N(Math.ceil(realizadas)) : '—')+' <small>realizadas</small>', 'mute', '<span>na conversão média atual</span>')
+    + tile('Agendamentos necessários', (agendadas!=null? N(Math.ceil(agendadas)) : '—')+' <small>no mês</small>', 'mute',
+        (porDiaUtil!=null? '<span>≈ '+nf1.format(porDiaUtil)+' por dia útil</span>' : ''))
+    + (leads!=null ? tile('Contatos necessários', N(Math.ceil(leads))+' <small>leads</small>', 'mute', '<span>topo do funil</span>') : '')
+    + '</div></div>';
+}
+
+function blocoTabela(s, metas){
+  const cols = [
+    ['Mês', d=>rotulo(d.mes) + (d.historico?' <small style="color:var(--ink-3)">rec.</small>':''), ''],
+    ['Alunos', d=>N(d.alunos), ''],
+    ['Novos', d=>N(d.novos), ''],
+    ['Retornos', d=>N(d.retornos), ''],
+    ['Cancel.', d=>N(d.cancelamentos), ''],
+    ['Cresc.', d=>P(d.crescPct), d=>sem(d.crescPct,metas.crescBom,metas.crescLim,'maior')],
+    ['Churn', d=>P(d.churnPct), d=>sem(d.churnPct,metas.churnBom,metas.churnLim,'menor')],
+    ['MRR', d=>RS(d.mrr), ''],
+    ['Ticket', d=>RS2(d.ticket), ''],
+    ['Inadim.', d=>P(d.inadPct), d=>sem(d.inadPct,metas.inadBom,metas.inadLim,'menor')],
+    ['Agend.', d=>N(d.agendadas), ''],
+    ['Realiz.', d=>N(d.realizadas), ''],
+    ['No-show', d=>P(d.noShow), d=>sem(d.noShow,metas.noShowBom,metas.noShowLim,'menor')],
+    ['Conv.', d=>P(d.convExp), d=>sem(d.convExp,metas.convBom,metas.convLim,'maior')],
+    ['Fecha?', d=> d.fecha===null?'—':(d.fecha?'✓':'✗'), d=> d.fecha===null?'':(d.fecha?'good':'crit')]
+  ];
+  return '<div class="tbl-wrap"><table><thead><tr>'
+    + cols.map(c=>'<th>'+c[0]+'</th>').join('')
+    + '</tr></thead><tbody>'
+    + [...s].reverse().map(d=>'<tr>'+cols.map(c=>{
+        const sc = typeof c[2]==='function' ? c[2](d) : '';
+        const cls = sc==='crit' ? ' class="bad"' : (sc==='good' ? ' class="ok"' : '');
+        return '<td'+cls+'>'+c[1](d)+'</td>';
+      }).join('')+'</tr>').join('')
+    + '</tbody></table></div>';
+}
+
+/* ============ planos ============ */
+const CORES_PLANO = ['var(--p1)','var(--p2)','var(--p3)','var(--p4)','var(--p5)','var(--p6)','var(--p7)','var(--p8)'];
+
+function planosDoMes(d){
+  const ps = (d.planos||[]).filter(p=>p && p.nome);
+  return ps.map(p=>({
+    nome: p.nome,
+    alunos: +p.alunos||0,
+    vendas: +p.vendas||0,
+    receita: +p.receita||0,
+    /* Contratos vigentes que a EVO deixou sem valor de venda. Não tiram
+       ninguém da base, mas puxam a receita do plano para baixo. */
+    sem_valor: +p.sem_valor||0
+  }));
+}
+/* agrupa acima de 8 planos para não estourar a paleta */
+function agrupaPlanos(ps, chave){
+  const ord = [...ps].sort((a,b)=>b[chave]-a[chave]);
+  if(ord.length<=8) return ord;
+  const topo = ord.slice(0,7);
+  const resto = ord.slice(7);
+  topo.push({nome:'Outros ('+resto.length+')', alunos:resto.reduce((s,x)=>s+x.alunos,0),
+    vendas:resto.reduce((s,x)=>s+x.vendas,0), receita:resto.reduce((s,x)=>s+x.receita,0)});
+  return topo;
+}
+
+/* barras horizontais de uma métrica só */
+function barrasPlano(ps, chave, fmt, cor){
+  const ord = [...ps].sort((a,b)=>b[chave]-a[chave]).filter(p=>p[chave]>0);
+  if(!ord.length) return '<div class="empty" style="padding:26px">Nenhum plano lançado neste mês.</div>';
+  const max = Math.max(...ord.map(p=>p[chave]));
+  const total = ord.reduce((s,p)=>s+p[chave],0);
+  return '<div class="funnel">' + ord.map(p=>{
+    const w = Math.max(2, p[chave]/max*100);
+    return '<div class="fstage"><div class="fl">'+esc(p.nome)+'</div>'
+      + '<div style="display:flex;align-items:center;gap:9px;min-width:0">'
+      + '<div class="fbar" style="width:'+w+'%;background:'+cor+'">'+fmt(p[chave])+'</div>'
+      + '<span style="font-size:12px;color:var(--ink-3);white-space:nowrap">'+P(p[chave]/total*100)+'</span>'
+      + '</div></div>';
+  }).join('') + '</div>';
+}
+
+/* barra 100% empilhada da receita */
+function composicaoReceita(ps){
+  const ord = agrupaPlanos(ps.filter(p=>p.receita>0), 'receita');
+  if(!ord.length) return '';
+  const total = ord.reduce((s,p)=>s+p.receita,0);
+  if(total<=0) return '';
+  const segs = ord.map((p,i)=>{
+    const pct = p.receita/total*100;
+    return '<div class="seg" style="width:'+pct+'%;background:'+CORES_PLANO[i%8]+'" '
+      + 'data-tip="'+esc('<b>'+esc(p.nome)+'</b><br>'+RS(p.receita)+' · '+P(pct)+' da receita')+'">'
+      + (pct>=9 ? '<span>'+nf0.format(pct)+'%</span>' : '') + '</div>';
+  }).join('');
+  const leg = ord.map((p,i)=>'<span><i style="background:'+CORES_PLANO[i%8]+'"></i>'+esc(p.nome)+'</span>').join('');
+  const maior = ord.reduce((a,b)=>a.receita>b.receita?a:b);
+  return '<div class="stack">'+segs+'</div><div class="legend" style="margin-top:12px">'+leg+'</div>'
+    + '<p class="note" style="margin-top:12px"><b>'+esc(maior.nome)+'</b> responde por '+P(maior.receita/total*100)
+    + ' da receita recorrente. Concentração alta em um plano é risco: qualquer mudança de preço ou condição nele move o caixa inteiro.</p>';
+}
+
+/* ============ composicao da base ============ */
+function blocoBase(){
+  const b = (dados()||{}).base;
+  if(!b || !b.cadastrados_ativos) return '';
+  const linhas = [
+    ['Cadastros ativos no EVO', b.cadastrados_ativos, 'tudo que aparece como ativo no cadastro'],
+    ['Alunos pagantes', b.alunos_ativos, 'cadastro ativo + contrato dentro da validade'],
+    ['Em cortesia ou VIP', b.em_cortesia, 'contrato vigente sem cobrança'],
+    ['Cadastro sem contrato vigente', b.cadastro_sem_contrato_vigente, 'ficha aberta, contrato vencido ou nunca feito']
+  ];
+  const total = b.cadastrados_ativos;
+  const cores = ['var(--s1)','var(--saq)','var(--sneg)'];
+  const partes = [b.alunos_ativos, b.em_cortesia, b.cadastro_sem_contrato_vigente];
+  const segs = partes.map((v,i)=>{
+    const pct = total>0 ? v/total*100 : 0;
+    return '<div class="seg" style="width:'+pct+'%;background:'+cores[i]+'" data-tip="'
+      + esc(esc(linhas[i+1][0])+'<br>'+nf0.format(v)+' · '+P(pct))+'">'
+      + (pct>=9 ? '<span>'+nf0.format(pct)+'%</span>' : '') + '</div>';
+  }).join('');
+  const leg = [1,2,3].map(i=>'<span><i style="background:'+cores[i-1]+'"></i>'+esc(linhas[i][0])+'</span>').join('');
+
+  let h = '<div class="tiles">'
+    + tile('Alunos pagantes', N(b.alunos_ativos), 'mute', '<span>mesmo critério do Dashboard do EVO</span>')
+    + tile('Contratos ativos', N(b.contratos_ativos), 'mute', '<span>'+nf2.format(b.contratos_por_aluno||1)+' por aluno</span>')
+    + tile('Com mais de um contrato', N(b.alunos_com_mais_de_um_contrato), 'mute', '<span>coletiva + particular, por exemplo</span>')
+    + tile('Em cortesia ou VIP', N(b.em_cortesia), 'mute', '<span>treinam e não entram na receita</span>')
+    + '</div>';
+
+  h += '<div class="card" style="margin-top:14px"><h3>Do cadastro ao aluno pagante</h3>'
+    + '<p class="note">Nem todo cadastro ativo é aluno. O painel só chama de aluno quem tem contrato dentro da validade e cobrança maior que zero — o mesmo critério do Dashboard do EVO.</p>'
+    + '<div class="stack">'+segs+'</div><div class="legend" style="margin-top:12px">'+leg+'</div>'
+    + '<div class="tbl-wrap" style="margin-top:14px"><table><thead><tr><th>Camada</th><th>Pessoas</th><th class="wrap">O que é</th></tr></thead><tbody>'
+    + linhas.map(l=>'<tr><td>'+esc(l[0])+'</td><td>'+N(l[1])+'</td><td class="note wrap">'+esc(l[2])+'</td></tr>').join('')
+    + '</tbody></table></div>';
+  if(b.renovacoes_sobrepostas>0)
+    h += '<p class="note" style="margin-top:12px">'+N(b.renovacoes_sobrepostas)+' contrato(s) apareciam duplicados porque a renovação foi lançada antes de o anterior vencer. Contam uma vez só.</p>';
+  h += '</div>';
+
+  const mult = ((dados()||{}).detalhe||{}).multiplos_contratos || [];
+  if(mult.length){
+    h += '<div class="card" style="margin-top:14px"><h3>Quem paga mais de um contrato</h3>'
+      + '<p class="note">Alunos que somam mais de uma linha de receita — normalmente aula coletiva mais particular. É a base natural para oferecer o segundo contrato a quem ainda tem um.</p>'
+      + '<div class="tbl-wrap"><table><thead><tr><th>Aluno</th><th>Contratos</th><th class="wrap">Planos</th></tr></thead><tbody>'
+      + mult.map(a=>'<tr><td>'+esc(a.aluno)+'</td><td>'+N(a.contratos)+'</td><td class="wrap">'+esc((a.planos||[]).join(' + '))+'</td></tr>').join('')
+      + '</tbody></table></div></div>';
+  }
+  return h;
+}
+
+function barrasSimples(itens, fmt, cor){
+  const ord = itens.filter(i=>(i.v||0)>0);
+  if(!ord.length) return '';
+  const max = Math.max(...ord.map(i=>i.v));
+  const total = ord.reduce((s,i)=>s+i.v,0);
+  return '<div class="funnel">' + ord.map(i=>{
+    const w = Math.max(4, i.v/max*100);
+    return '<div class="fstage"><div class="fl">'+esc(i.nome)+'</div>'
+      + '<div style="display:flex;align-items:center;gap:9px;min-width:0">'
+      + '<div class="fbar" style="width:'+w+'%;background:'+cor+'">'+fmt(i.v)+'</div>'
+      + '<span style="font-size:12px;color:var(--ink-3);white-space:nowrap">'+P(i.v/total*100)+'</span>'
+      + '</div></div>';
+  }).join('') + '</div>';
+}
+
+function tabelaVendas(titulo, nota, lista){
+  const tot = lista.reduce((s,x)=>s+(x.receita||0),0);
+  return '<div class="card" style="margin-top:14px"><h3>'+esc(titulo)+'</h3>'
+    + '<p class="note">'+nota+'</p>'
+    + '<div class="tbl-wrap"><table><thead><tr><th>Item</th><th>Pessoas</th><th>Vendas</th><th>Receita</th><th>Ticket</th></tr></thead><tbody>'
+    + lista.map(x=>'<tr><td>'+esc(x.nome)+'</td><td>'+N(x.alunos)+'</td><td>'+N(x.vendas)+'</td><td>'+RS(x.receita)+'</td>'
+        + '<td>'+(x.vendas>0?RS2(x.receita/x.vendas):'—')+'</td></tr>').join('')
+    + '<tr style="font-weight:700;background:var(--surface-2)"><td>Total</td><td></td>'
+    + '<td>'+N(lista.reduce((s,x)=>s+(x.vendas||0),0))+'</td><td>'+RS(tot)+'</td><td></td></tr>'
+    + '</tbody></table></div></div>';
+}
+
+/* ============ churn ============ */
+const dataBr = s => { const p = String(s||'').slice(0,10).split('-'); return p.length===3 ? p[2]+'/'+p[1]+'/'+p[0] : '—'; };
+
+function grafBarrasMes(serie, cor, fmt, titulo){
+  if(!serie || !serie.length) return '<div class="empty" style="padding:26px">Ainda não há dados.</div>';
+  const W=560, H=200, ml=44, mr=14, mt=14, mb=30;
+  const max = Math.max(1, ...serie.map(x=>x.v||0));
+  const iw=W-ml-mr, ih=H-mt-mb;
+  const passoX = iw/serie.length, larg = Math.min(30, passoX*0.6);
+  let g='', barras='';
+  [max, max/2, 0].forEach(t=>{
+    const y = mt+ih - (t/max)*ih;
+    g += '<line x1="'+ml+'" x2="'+(W-mr)+'" y1="'+y.toFixed(1)+'" y2="'+y.toFixed(1)+'" stroke="'+(t===0?'var(--axis)':'var(--grid)')+'" stroke-width="1"/>';
+    g += '<text x="'+(ml-8)+'" y="'+(y+4).toFixed(1)+'" text-anchor="end" font-size="10.5" fill="var(--ink-3)">'+N(Math.round(t))+'</text>';
+  });
+  serie.forEach((x,i)=>{
+    const cx = ml + passoX*(i+0.5);
+    const h = (x.v||0)/max*ih;
+    barras += '<rect x="'+(cx-larg/2).toFixed(1)+'" y="'+(mt+ih-h).toFixed(1)+'" width="'+larg.toFixed(1)+'" height="'+Math.max(0,h).toFixed(1)+'" rx="4" fill="'+cor+'"'
+      + ' data-tip="'+esc('<b>'+fmt(x.v)+'</b><br>'+rotuloLongo(x.m)+(x.extra?'<br>'+x.extra:''))+'"/>';
+    if(i%Math.ceil(serie.length/7)===0 || i===serie.length-1)
+      barras += '<text x="'+cx.toFixed(1)+'" y="'+(H-8)+'" text-anchor="middle" font-size="10.5" fill="var(--ink-3)">'+rotulo(x.m)+'</text>';
+  });
+  return '<div class="chartbox"><svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+esc(titulo)+'">'+g+barras+'</svg></div>';
+}
+
+function blocoChurn(){
+  const ch = ((dados()||{}).detalhe||{}).churn;
+  if(!ch || !ch.total) return '';
+  const serie = (ch.serie_mensal||[]).map(x=>({m:x.mes, v:x.cancelamentos, extra:RS(x.valor_perdido)+' de contrato cancelado'}));
+  const motivos = Object.keys(ch.motivos||{}).map(k=>({nome:k, v:ch.motivos[k]})).sort((a,b)=>b.v-a.v);
+  const totMot = motivos.reduce((s,x)=>s+x.v,0);
+  const top = motivos[0];
+  const fin = motivos.filter(m=>/financeir/i.test(m.nome)).reduce((s,m)=>s+m.v,0);
+  const tempo = motivos.filter(m=>/tempo|frequenta/i.test(m.nome)).reduce((s,m)=>s+m.v,0);
+  const troca = motivos.filter(m=>/trocar/i.test(m.nome)).reduce((s,m)=>s+m.v,0);
+
+  let h = '<div class="tiles">'
+    + tile('Cancelamentos em 12 meses', N(ch.total), 'mute', '<span>média de '+(ch.media_por_mes!=null?nf1.format(ch.media_por_mes):'—')+' por mês</span>')
+    + tile('Contrato cancelado', RS(ch.perda_total), 'mute', '<span>valor dos contratos que saíram</span>')
+    + tile('Pior mês', ch.pior_mes ? rotuloLongo(ch.pior_mes.mes) : '—', 'warn', '<span>'+(ch.pior_mes?N(ch.pior_mes.cancelamentos)+' cancelamentos':'')+'</span>')
+    + tile('Motivo número 1', top?esc(top.nome):'—', 'mute', '<span>'+(top?N(top.v)+' saídas · '+P(top.v/totMot*100):'')+'</span>')
+    + '</div>';
+
+  h += '<div class="card" style="margin-top:14px"><h3>Cancelamentos mês a mês</h3>'
+    + '<p class="note">Doze meses de saídas, direto do registro de cancelamento do EVO. A barra é gente; passe o mouse para ver o valor de contrato que saiu junto.</p>'
+    + grafBarrasMes(serie, 'var(--sneg)', v=>nf0.format(v)+' cancelamentos', 'Cancelamentos por mês')
+    + '</div>';
+
+  h += '<div class="grid2" style="margin-top:14px">'
+    + '<div class="card"><h3>Por que saem</h3>'
+      + '<p class="note">Motivo registrado no cancelamento. Só serve se a equipe preencher com honestidade — "outros" alto significa registro preguiçoso, não motivo desconhecido.</p>'
+      + barrasSimples(motivos, v=>nf0.format(v), 'var(--sneg)') + '</div>'
+    + '<div class="card"><h3>Onde dói</h3>'
+      + '<p class="note">Os três grupos que respondem por quase todo o churn — e cada um tem uma ação diferente.</p>'
+      + '<div class="tbl-wrap"><table><thead><tr><th>Grupo</th><th>Saídas</th><th>Peso</th><th class="wrap">O que fazer</th></tr></thead><tbody>'
+      + '<tr><td>Preço / financeiro</td><td>'+N(fin)+'</td><td>'+P(totMot?fin/totMot*100:0)+'</td><td class="note wrap">Plano mais barato antes do cancelamento, não depois. Downgrade retém melhor que desconto.</td></tr>'
+      + '<tr><td>Falta de tempo / sumiu</td><td>'+N(tempo)+'</td><td>'+P(totMot?tempo/totMot*100:0)+'</td><td class="note wrap">É frequência, não agenda. O radar de 14 dias sem treinar é o gatilho — ligar antes de virar cancelamento.</td></tr>'
+      + '<tr><td>Troca de contrato</td><td>'+N(troca)+'</td><td>'+P(totMot?troca/totMot*100:0)+'</td><td class="note wrap">Não é saída de verdade: é migração de plano. Vale separar do churn nas metas.</td></tr>'
+      + '</tbody></table></div></div>'
+    + '</div>';
+
+  if((ch.por_plano||[]).length) h += '<div class="card" style="margin-top:14px"><h3>Quais planos perdem gente</h3>'
+    + '<p class="note">Cancelamentos por plano em 12 meses. Plano com muita saída e pouca base é plano com problema de encaixe, não de aluno.</p>'
+    + '<div class="tbl-wrap"><table><thead><tr><th>Plano</th><th>Cancelamentos</th><th>Contrato cancelado</th></tr></thead><tbody>'
+    + ch.por_plano.slice(0,14).map(p=>'<tr><td>'+esc(p.plano)+'</td><td>'+N(p.cancelamentos)+'</td><td>'+RS(p.valor)+'</td></tr>').join('')
+    + '</tbody></table></div></div>';
+
+  if((ch.lista||[]).length) h += '<div class="card" style="margin-top:14px"><h3>Quem saiu</h3>'
+    + '<p class="note">Os cancelamentos mais recentes, com nome, data, plano e motivo. Tempo de contrato é o ciclo vigente quando cancelou — em plano recorrente mensal isso reinicia todo mês, então não leia como tempo de casa.</p>'
+    + '<div class="tbl-wrap"><table><thead><tr><th>Aluno</th><th>Data</th><th class="wrap">Plano</th><th class="wrap">Motivo</th><th>Valor</th><th>Multa</th></tr></thead><tbody>'
+    + ch.lista.slice(0,40).map(c=>'<tr><td>'+esc(c.aluno)+'</td><td>'+esc(dataBr(c.data))+'</td>'
+        + '<td class="note wrap">'+esc(c.plano)+'</td><td class="note wrap">'+esc(c.motivo)+'</td>'
+        + '<td>'+RS(c.valor)+'</td><td>'+(c.multa>0?RS(c.multa):'—')+'</td></tr>').join('')
+    + '</tbody></table></div></div>';
+
+  h += '<div class="alerta" style="margin-top:14px"><b>Duas coisas que a API da EVO não entrega.</b> '
+    + 'Quem registrou o cancelamento não vem no registro — o EVO guarda aluno, data, plano, motivo e multa, sem o funcionário. '
+    + 'E a lista de suspensos com data de regresso também não: o status de contrato só aceita ativo e cancelado, e nenhuma rota de bloqueio ou congelamento responde. '
+    + 'Enquanto isso não abrir, essas duas leituras saem do painel da EVO na mão.</div>';
+  return h;
+}
+
+/* ============ planos vendidos no mês ============ */
+function blocoPlanosVendidos(){
+  const pv = ((dados()||{}).detalhe||{}).planos_vendidos || [];
+  if(!pv.length) return '';
+  const novas = pv.reduce((s,x)=>s+(x.novas||0),0);
+  const renov = pv.reduce((s,x)=>s+(x.renovacoes||0),0);
+  const receita = pv.reduce((s,x)=>s+(x.receita||0),0);
+  const comNovas = pv.filter(x=>x.novas>0).sort((a,b)=>b.novas-a.novas);
+  const campeao = comNovas[0];
+
+  let h = '<div class="tiles" style="margin-top:14px">'
+    + tile('Contratos novos no mês', N(novas), 'mute', '<span>primeira assinatura, não renovação</span>')
+    + tile('Renovações', N(renov), 'mute', '<span>cobrança recorrente do mês</span>')
+    + tile('Plano mais vendido', campeao?esc(campeao.nome):'—', 'mute', '<span>'+(campeao?N(campeao.novas)+' contratos novos':'')+'</span>')
+    + tile('Receita contratada no mês', RS(receita), 'mute', '<span>novos + renovações</span>')
+    + '</div>';
+
+  if(comNovas.length) h += '<div class="card" style="margin-top:14px"><h3>O que está vendendo agora</h3>'
+    + '<p class="note">Só contratos novos. É a leitura de demanda do mês — diferente do mix, que mostra onde a base parou historicamente.</p>'
+    + barrasSimples(comNovas.map(x=>({nome:x.nome, v:x.novas})), v=>nf0.format(v)+' novos', 'var(--s1)')
+    + '</div>';
+
+  h += '<div class="card" style="margin-top:14px"><h3>Planos vendidos no mês</h3>'
+    + '<p class="note">Cada linha soma o que o EVO registrou como venda daquele plano no mês, separando primeira assinatura de renovação.</p>'
+    + '<div class="tbl-wrap"><table><thead><tr><th>Plano</th><th>Novos</th><th>Renovações</th><th>Total</th><th>Receita</th><th>Ticket</th></tr></thead><tbody>'
+    + pv.map(x=>'<tr><td>'+esc(x.nome)+'</td><td>'+(x.novas>0?'<b>'+N(x.novas)+'</b>':'—')+'</td><td>'+N(x.renovacoes)+'</td>'
+        + '<td>'+N(x.vendas)+'</td><td>'+RS(x.receita)+'</td><td>'+(x.vendas>0?RS2(x.receita/x.vendas):'—')+'</td></tr>').join('')
+    + '<tr style="font-weight:700;background:var(--surface-2)"><td>Total</td><td>'+N(novas)+'</td><td>'+N(renov)+'</td>'
+    + '<td>'+N(novas+renov)+'</td><td>'+RS(receita)+'</td><td></td></tr>'
+    + '</tbody></table></div></div>';
+  return h;
+}
+
+/* ============ movimentação de caixa ============ */
+function blocoCaixa(){
+  const det = (dados()||{}).detalhe||{};
+  const cx = det.caixa_do_mes;
+  if(!cx) return '';
+  const cats = (det.avulsos_do_mes||{}).categorias || [];
+  let h = '<div class="tiles">'
+    + tile('Movimentado no mês', RS(cx.total_movimentado), 'mute', '<span>tudo que a EVO registrou como venda</span>')
+    + tile('Planos', RS(cx.planos_vendidos_no_mes), 'mute', '<span>novos + renovações</span>')
+    + tile('Serviços e produtos', RS(cx.servicos_e_produtos), 'mute', '<span>'+P(cx.pct_fora_do_recorrente)+' do movimento</span>')
+    + tile('Recorrente contratado', RS(cx.recorrente_contratado), 'mute', '<span>base de cobrança do mês</span>')
+    + '</div>';
+  /* Rosca da receita inteira: os planos, somados por família, mais uma fatia
+     só com serviços e produtos. A rosca antiga mostrava apenas o pedaço de
+     fora do plano, que é 1% do movimento — dava a impressão de ser o todo. */
+  const mesAtual = (state.meses||[])[ (state.meses||[]).length-1 ] || {};
+  const psTudo = ((mesAtual.planos)||[]).filter(x=>x && x.nome && (+x.receita||0)>0)
+    .map(x=>({nome:x.nome, valor:+x.receita||0}))
+    .sort((a,b)=>b.valor-a.valor);
+  const servProd = (+cx.servicos_e_produtos||0);
+  if(psTudo.length){
+    /* A paleta categórica tem 7 cores. Com mais de 7 fatias ela repete, e a
+       fatia de serviços e produtos — que é a que interessa destacar — saía na
+       mesma cor do maior plano. Cinco planos + demais + serviços fecham em 7. */
+    const topo = psTudo.slice(0,5);
+    const resto = psTudo.slice(5).reduce((t,x)=>t+x.valor,0);
+    const fatias = topo.slice();
+    if(resto>0) fatias.push({nome:'Demais planos', valor:resto});
+    if(servProd>0) fatias.push({nome:'Serviços e produtos', valor:servProd});
+    const totTudo = fatias.reduce((t,x)=>t+x.valor,0);
+    h += '<div class="card" style="margin-top:14px"><h3>De onde vem a receita</h3>'
+      + '<p class="note">Tudo que a escola faturou no mês numa figura só: cada plano com peso próprio e uma fatia única para serviços e produtos — exame de faixa, aluguel de kimono e afins. Serve para ver o tamanho real de cada fonte antes de decidir onde mexer.</p>'
+      + grafPizza(fatias, 'receita do mês')
+      + '<div class="tbl-wrap" style="margin-top:12px"><table><thead><tr><th>Fonte</th><th>Receita</th><th>Peso</th></tr></thead><tbody>'
+      + fatias.map(x=>'<tr><td>'+esc(x.nome)+'</td><td>'+RS(x.valor)+'</td><td>'+P(totTudo?x.valor/totTudo*100:0)+'</td></tr>').join('')
+      + '<tr style="font-weight:700;background:var(--surface-2)"><td>Total</td><td>'+RS(totTudo)+'</td><td>100,0%</td></tr>'
+      + '</tbody></table></div>'
+      + '<p class="note">Serviços e produtos somam '+RS(servProd)+', ou '+P(totTudo?servProd/totTudo*100:0)+' do total. '
+      + 'É pouco em proporção, mas é caixa que não depende de mensalidade — e é a única linha que a escola consegue mexer sem mexer em plano.</p>'
+      + '</div>';
+  }
+
+  if(cats.length){
+    const tot = cats.reduce((s,c)=>s+(c.receita||0),0);
+    h += '<div class="card" style="margin-top:14px"><h3>Dentro dos serviços e produtos</h3>'
+      + '<p class="note">Categorias separadas por tipo de item na venda. Aluguel de kimono, aula avulsa, personal e exame de faixa entram aqui — é caixa que não aparece no MRR e por isso costuma passar despercebido.</p>'
+      + grafPizza(cats.map(c=>({nome:c.categoria, valor:c.receita})), 'fora do plano')
+      + '<p class="note">A rosca mostra a proporção dentro deste bolo, que é '+P(cx.pct_fora_do_recorrente)+' do movimento do mês. O personal recorrente fica fora dela porque a EVO o registra como plano, não como serviço avulso.</p>'
+      + '<div class="tbl-wrap"><table><thead><tr><th>Categoria</th><th>Vendas</th><th>Receita</th><th>Peso</th><th class="wrap">Itens</th></tr></thead><tbody>'
+      + cats.map(c=>'<tr><td>'+esc(c.categoria)+'</td><td>'+N(c.vendas)+'</td><td>'+RS(c.receita)+'</td>'
+          + '<td>'+P(tot?c.receita/tot*100:0)+'</td>'
+          + '<td class="note wrap">'+esc((c.itens||[]).map(i=>i.nome).join(', '))+'</td></tr>').join('')
+      + '<tr style="font-weight:700;background:var(--surface-2)"><td>Total</td>'
+      + '<td>'+N(cats.reduce((s,c)=>s+(c.vendas||0),0))+'</td><td>'+RS(tot)+'</td><td></td><td></td></tr>'
+      + '</tbody></table></div></div>';
+  }
+  const faltando = ['Aluguel de kimono','Aula avulsa','Aula particular (personal)'].filter(k=>!cats.some(c=>c.categoria===k));
+  if(faltando.length) h += '<div class="alerta" style="margin-top:14px"><b>Sem registro de '+esc(faltando.join(', ').toLowerCase())+' neste mês.</b> '
+    + 'Ou não houve venda, ou a cobrança saiu por fora do EVO. Se saiu por fora, o painel está vendo menos caixa do que a escola fez — e o acerto do professor também.</div>';
+  return h;
+}
+
+function blocoServicos(d){
+  const det = (dados()||{}).detalhe||{};
+  const sv = det.servicos_avulsos || d.servicos || [];
+  const pr = det.produtos_vendidos || d.produtos || [];
+  if(!sv.length && !pr.length) return '';
+  const rs = sv.reduce((s,x)=>s+(x.receita||0),0);
+  const rp = pr.reduce((s,x)=>s+(x.receita||0),0);
+  const mrr = d.mrr||0;
+  let h = '<div class="tiles" style="margin-top:14px">'
+    + tile('Receita de serviços', RS(rs), 'mute', '<span>'+(mrr>0?P(rs/mrr*100)+' do recorrente':'pagamento único')+'</span>')
+    + tile('Receita de produtos', RS(rp), 'mute', '<span>kimono, rashguard, loja</span>')
+    + tile('Fora do recorrente', RS(rs+rp), 'mute', '<span>entra no caixa, não no MRR</span>')
+    + '</div>';
+  if(sv.length) h += tabelaVendas('Serviços vendidos no mês',
+    'Pagamento único: aula particular avulsa, exame de faixa. Não entra na receita recorrente, mas é caixa e mostra o que a base compra além do plano.', sv);
+  if(pr.length) h += tabelaVendas('Produtos vendidos no mês',
+    'Loja: kimono, rashguard e afins. Margem e giro aqui são decisão de compra, não de contrato.', pr);
+  return h;
+}
+
+function blocoConferencia(d){
+  const raiz = dados() || {};
+  const det = raiz.detalhe || {};
+  const folha = det.folha_do_mes || [];
+  const decl = (raiz.declaracoes || []).filter(x => x && x.periodo === d.mes);
+  if(!decl.length) return '';
+
+  const porProf = {};
+  folha.forEach(f => { porProf[f.professor] = { professor:f.professor, apurado:+f.aulas||0, declarado:null, dec:null }; });
+  decl.forEach(x => {
+    if(!porProf[x.professor]) porProf[x.professor] = { professor:x.professor, apurado:0, declarado:null, dec:null };
+    porProf[x.professor].declarado = +x.aulasDeclaradas||0;
+    porProf[x.professor].dec = x;
+  });
+  const linhas = Object.keys(porProf).map(k=>porProf[k])
+    .map(l => ({...l, dif: (l.declarado==null) ? null : (l.declarado - l.apurado)}))
+    .sort((a,b)=>Math.abs(b.dif??-1)-Math.abs(a.dif??-1) || b.apurado-a.apurado);
+
+  const enviaram = linhas.filter(l=>l.declarado!=null);
+  const faltam = linhas.filter(l=>l.declarado==null && l.apurado>0);
+  const divergem = enviaram.filter(l=>l.dif!==0);
+  const somaDif = enviaram.reduce((t,l)=>t+(l.dif||0),0);
+
+  /* Rateio do exame: a EVO registra a venda, nao quem aplicou. Com a declaracao
+     do professor sabemos quem aplicou e para quantos alunos, entao a fatia de um
+     terco deixa de ser bolo e passa a ter dono, proporcional aos alunos. */
+  const av = det.avulsos_do_mes || {};
+  const bolo = (av.receita_exames||0)/3;
+  const aplicaram = enviaram.filter(l=>l.dec && l.dec.aplicouExame && (+l.dec.exameAlunos>0));
+  const totAlunosExame = aplicaram.reduce((t,l)=>t+(+l.dec.exameAlunos||0),0);
+
+  let h = '<div class="tiles">'
+    + tile('Relatórios recebidos', N(enviaram.length)+' de '+N(linhas.filter(l=>l.apurado>0).length),
+        faltam.length?'warn':'ok', '<span>'+(faltam.length? N(faltam.length)+' ainda não enviaram' : 'todos entregaram')+'</span>')
+    + tile('Professores com divergência', N(divergem.length), divergem.length?'warn':'ok',
+        '<span>'+(divergem.length?'conferir antes de pagar':'apurado bate com o declarado')+'</span>')
+    + tile('Aulas não lançadas na grade', (somaDif>0?'+':'')+N(somaDif), somaDif>0?'warn':'mute',
+        '<span>'+(somaDif>0? 'declaradas a mais que o registrado, '+RS2(somaDif*valorAula())+' fora da apuração' : 'nada a recuperar')+'</span>')
+    + '</div>';
+
+  h += '<div class="card" style="margin-top:14px"><h3>Apurado contra declarado</h3>'
+    + '<p class="note">A coluna da esquerda é o que a grade do EVO registrou; a da direita é o que o professor declarou no app dele. A diferença não é erro de ninguém — é aula que aconteceu e não foi lançada, ou lançada no nome errado. É onde o acerto e a gestão perdem informação junto.</p>'
+    + '<div class="tbl-wrap"><table><thead><tr><th>Professor</th><th>Apurado</th><th>Declarado</th><th>Diferença</th><th>Particulares</th><th>Exame</th><th class="wrap">Observação do professor</th></tr></thead><tbody>'
+    + linhas.map(l=>{
+        const semEnvio = l.declarado==null;
+        const cor = semEnvio ? 'var(--ink-3)' : (l.dif===0 ? 'var(--good-ink)' : 'var(--warn-ink)');
+        const txt = semEnvio ? '—' : (l.dif>0?'+':'')+nf0.format(l.dif);
+        const x = l.dec||{};
+        return '<tr><td>'+esc(l.professor)+'</td><td>'+N(l.apurado)+'</td>'
+          + '<td>'+(semEnvio?'<span class="note">não enviou</span>':N(l.declarado))+'</td>'
+          + '<td style="color:'+cor+';font-weight:700">'+txt+'</td>'
+          + '<td>'+(semEnvio?'—':N(x.particularesQtd||0))+'</td>'
+          + '<td>'+(semEnvio?'—':(x.aplicouExame?N(x.exameAlunos||0)+' <small>alunos</small>':'não')) +'</td>'
+          + '<td class="note wrap">'+esc(x.observacoes||'')+'</td></tr>';
+      }).join('')
+    + '</tbody></table></div></div>';
+
+  if(bolo>0){
+    h += '<div class="card" style="margin-top:14px"><h3>Exame de faixa, agora com dono</h3>';
+    if(totAlunosExame>0){
+      h += '<p class="note">A EVO registra a venda do exame, não quem aplicou. Com a declaração do professor isso deixa de ser bolo: a fatia de um terço se divide proporcionalmente aos alunos que cada um examinou.</p>'
+        + '<div class="tbl-wrap"><table><thead><tr><th>Professor</th><th>Alunos examinados</th><th>Data</th><th>Cabe a ele</th></tr></thead><tbody>'
+        + aplicaram.map(l=>'<tr><td>'+esc(l.professor)+'</td><td>'+N(l.dec.exameAlunos)+'</td>'
+            + '<td>'+esc(dataBr(l.dec.exameData)||'—')+'</td>'
+            + '<td><b>'+RS2(bolo*(+l.dec.exameAlunos)/totAlunosExame)+'</b></td></tr>').join('')
+        + '<tr style="font-weight:700;background:var(--surface-2)"><td>Total</td><td>'+N(totAlunosExame)+'</td><td></td><td>'+RS2(bolo)+'</td></tr>'
+        + '</tbody></table></div>';
+      const vendidos = av.exames_vendidos||0;
+      if(vendidos && totAlunosExame !== vendidos){
+        h += '<div class="alerta" style="margin-top:12px"><b>A EVO vendeu '+N(vendidos)+' '+(vendidos===1?'exame':'exames')+' e os professores declararam '+N(totAlunosExame)+'.</b> '
+          + 'Enquanto os dois números não baterem, o rateio acima é aproximado — vale conferir se algum exame ficou sem declaração ou foi vendido e não aplicado.</div>';
+      }
+    } else {
+      h += '<p class="note">Houve '+RS(av.receita_exames)+' em exames no mês, mas nenhum professor declarou ter aplicado. Enquanto isso não for preenchido no app, os '+RS2(bolo)+' que cabem aos professores continuam sem dono e o rateio é combinado na mão.</p>';
+    }
+    h += '</div>';
+  }
+
+  if(faltam.length){
+    h += '<div class="alerta" style="margin-top:14px"><b>Faltam os relatórios de '+esc(faltam.map(l=>l.professor).join(', '))+'.</b> '
+      + 'Deram aula no mês e ainda não enviaram pelo app. Sem a declaração deles, a conferência do mês fica incompleta e o exame não tem como ser rateado.</div>';
+  }
+  return h;
+}
+
+function blocoFolha(d){
+  const det = (dados()||{}).detalhe||{};
+  const f = det.folha_do_mes || [];
+  const av = det.avulsos_do_mes || {};
+  if(!f.length) return '';
+  const vAula = valorAula();
+  /* Declaracao do professor, cruzada com o apurado da grade. A EVO nao sabe
+     quem aplicou exame nem quem deu particular; o relatorio mensal preenche
+     esse buraco. A diferenca e guia de processo — nao trava pagamento. */
+  const decl = ((dados()||{}).declaracoes || []).filter(x => x && x.periodo === d.mes);
+  const declPorProf = {};
+  decl.forEach(x => { declPorProf[String(x.professor||'').trim().toUpperCase()] = x; });
+  const linhas = f.map(p=>{
+    const dx = declPorProf[String(p.professor||'').trim().toUpperCase()] || null;
+    const declarado = dx ? (+dx.aulasDeclaradas||0) : null;
+    return {...p, complementares: p.complementares||0, valor: p.aulas*vAula,
+      declarado: declarado, dif: (declarado==null? null : declarado - p.aulas), dec: dx};
+  });
+  const enviaramFolha = linhas.filter(l=>l.declarado!=null);
+  const divergemFolha = enviaramFolha.filter(l=>l.dif!==0);
+  const totAulas = linhas.reduce((s,p)=>s+p.aulas,0);
+  const totIntro = linhas.reduce((s,p)=>s+p.introdutorias,0);
+  const totComp  = linhas.reduce((s,p)=>s+p.complementares,0);
+  const totValor = totAulas*vAula;
+
+  let h = '<div class="tiles">'
+    + tile('Aulas a pagar no mês', N(totAulas), 'mute', '<span>'+N(det.sessoes_no_mes||totAulas)+' sessões na grade</span>')
+    + tile('Valor por aula', RS2(vAula), 'mute', '<button class="btn btn-sm" data-acao="editvaloraula">Ajustar</button>')
+    + tile('Total da folha de aulas', RS(totValor), 'mute', '<span>coletivas + introdutórias + complementares</span>')
+    + tile('Introdutórias no mês', N(totIntro), totIntro>0?'mute':'warn', '<span>'+(totIntro>0?'primeiro contato, entram no funil':'nenhuma lançada na grade')+'</span>')
+    + tile('Complementares no mês', N(totComp), 'mute', '<span>aula 2 e 3 da metodologia, fora do funil</span>')
+    + tile('Total apurado no mês', RS(totValor + ((av.receita_exames||0)/3)), 'mute', '<span>aulas mais a fatia dos exames</span>')
+    + '</div>';
+
+  h += '<div class="card" style="margin-top:14px"><h3>Fechamento por professor</h3>'
+    + '<p class="note">Cada linha é a contagem de sessões que a grade do EVO registra no mês, com o professor atribuído. Introdutória é a aula de primeiro contato; complementar é a aula 2 e a aula 3 da metodologia, dadas para quem já matriculou. As duas se pagam pelo mesmo valor — a diferença é que só a primeira conta como funil. Confira contra a escala antes de pagar: o painel conta o que está lançado, não o que foi combinado.</p>'
+    + '<div class="tbl-wrap"><table><thead><tr><th>Professor</th><th>Coletivas</th><th>Introdutórias</th><th>Complementares</th><th>Apurado</th><th>Declarado</th><th>Diferença</th><th>Presenças</th><th>A pagar</th></tr></thead><tbody>'
+    + linhas.map(p=>{
+        const semEnvio = p.declarado==null;
+        const cls = semEnvio ? 'vazio-cell' : (p.dif===0 ? 'ok-cell' : 'warn-cell');
+        return '<tr><td>'+esc(p.professor)+'</td><td>'+N(p.coletivas)+'</td><td>'+N(p.introdutorias)+'</td><td>'+N(p.complementares)+'</td>'
+        + '<td>'+N(p.aulas)+'</td>'
+        + '<td class="'+cls+'">'+(semEnvio?'não enviou':N(p.declarado))+'</td>'
+        + '<td class="'+cls+'">'+(semEnvio?'—':(p.dif===0?'confere':(p.dif>0?'+':'')+N(p.dif)))+'</td>'
+        + '<td>'+N(p.presencas)+'</td><td><b>'+RS2(p.valor)+'</b></td></tr>';
+      }).join('')
+    + '<tr style="font-weight:700;background:var(--surface-2)"><td>Total</td>'
+    + '<td>'+N(linhas.reduce((s,p)=>s+p.coletivas,0))+'</td><td>'+N(totIntro)+'</td><td>'+N(totComp)+'</td><td>'+N(totAulas)+'</td>'
+    + '<td>'+N(enviaramFolha.reduce((s,p)=>s+(p.declarado||0),0))+'</td>'
+    + '<td>'+N(enviaramFolha.reduce((s,p)=>s+(p.dif||0),0))+'</td>'
+    + '<td>'+N(linhas.reduce((s,p)=>s+p.presencas,0))+'</td><td>'+RS2(totValor)+'</td></tr>'
+    + '</tbody></table></div>'
+    + (decl.length
+        ? '<p class="note" style="margin-top:10px"><b>Apurado</b> é o que a grade do EVO registrou; <b>declarado</b> é o que o professor informou no relatório mensal. '
+          + N(enviaramFolha.length)+' de '+N(linhas.filter(l=>l.aulas>0).length)+' enviaram, e '+N(divergemFolha.length)
+          + (divergemFolha.length===1?' diverge':' divergem')+'. A divergência é guia de processo, não trava o acerto: '
+          + 'a diferença quase sempre é aula dada sem lançamento na grade, ou lançada no nome errado. Vale olhar o padrão ao longo dos meses, não o caso isolado.</p>'
+        : '<p class="note" style="margin-top:10px">Nenhum relatório de professor recebido para este mês ainda. Quando chegarem, as colunas <b>declarado</b> e <b>diferença</b> se preenchem sozinhas.</p>')
+    + '</div>';
+
+  /* "ALLIANCE JIU JITSU" era o Alessandro antes de ele ter cadastro e o cálculo já
+     realoca. Sobra aqui só a aula realmente sem instrutor preenchido no EVO. */
+  const semDono = linhas.filter(p=>/sem professor/i.test(p.professor));
+  if(semDono.length){
+    const q = semDono.reduce((s,p)=>s+p.aulas,0);
+    h += '<div class="alerta" style="margin-top:14px"><b>'+N(q)+' '+(q===1?'aula lançada sem professor':'aulas lançadas sem professor')+'.</b> '
+      + 'Quando o instrutor fica em branco no EVO, a aula cai no nome da conta da academia e o valor não tem dono no acerto. '
+      + 'Corrija o lançamento no EVO e o painel realoca sozinho na próxima coleta.</div>';
+  }
+  const dg = ((dados()||{}).diagnostico)||{};
+  if(dg.dias_de_grade_pedidos && dg.dias_de_grade_lidos < dg.dias_de_grade_pedidos){
+    const faltam = dg.dias_de_grade_pedidos - dg.dias_de_grade_lidos;
+    h += '<div class="alerta" style="margin-top:14px"><b>'+N(faltam)+' '+(faltam===1?'dia de grade não veio na coleta':'dias de grade não vieram na coleta')+'.</b> '
+      + 'A EVO limita quantas consultas aceita por minuto e recusou '+(faltam===1?'essa':'essas')+'. '
+      + 'As aulas desse dia não entraram na contagem — o total a pagar está subestimado em até '+RS2(faltam*8*vAula)+'. Rodar o relatório de novo costuma resolver.</div>';
+  }
+  const temAvulso = (av.exames_vendidos||0) + (av.particulares_avulsas||0) + (av.alunos_personal_recorrente||0) > 0;
+  if(temAvulso){
+    h += '<div class="card" style="margin-top:14px"><h3>A ratear na mão</h3>'
+      + '<p class="note">O EVO registra a venda destes itens, mas não quem conduziu. Enquanto exame de faixa e aula particular não forem lançados na grade com o professor, estas linhas entram no acerto manualmente.</p>'
+      + '<div class="tbl-wrap"><table><thead><tr><th>Item</th><th>Quantidade</th><th>Receita</th><th>Cabe ao professor</th><th style="text-align:left">Como fechar</th></tr></thead><tbody>'
+      + '<tr><td>Exames de faixa</td><td>'+N(av.exames_vendidos)+'</td><td>'+RS(av.receita_exames)+'</td><td><b>'+RS2((av.receita_exames||0)/3)+'</b> <small>1/3</small></td><td class="note wrap">Quem aplicou não está no sistema — combine na escala</td></tr>'
+      + '<tr><td>Aulas particulares avulsas</td><td>'+N(av.particulares_avulsas)+'</td><td>'+RS(av.receita_particulares)+'</td><td>'+RS2((av.receita_particulares||0)/2)+' <small>50%</small></td><td class="note wrap">Vendidas como “Eduard/Thomas”, sem separar quem deu</td></tr>'
+      + '<tr><td>Personal recorrente</td><td>'+N(av.alunos_personal_recorrente)+' <small>alunos</small></td><td>'+RS(av.receita_personal_recorrente)+'</td><td>'+RS2((av.receita_personal_recorrente||0)/2)+' <small>50%</small></td><td class="note wrap">Contrato mensal, também sem professor identificado</td></tr>'
+      + '</tbody></table></div>'
+      + '<p class="note">O exame paga um terço do valor cobrado ao professor que aplicou; o personal paga metade. Os dois valores saem como bolo porque a EVO registra a venda, não quem conduziu — enquanto isso não for lançado na grade, o rateio é combinado na mão.</p></div>';
+  }
+  return h;
+}
+
+function blocoVendedores(){
+  const v = ((dados()||{}).detalhe||{}).vendedores || [];
+  if(!v.length) return '';
+  const tot = v.reduce((s,x)=>s+(x.vendas||0),0);
+  return '<div class="card" style="margin-top:14px"><h3>Quem assinou a venda</h3>'
+    + '<p class="note">Quem fechou o contrato no balcão, segundo o EVO. É outra pergunta: dar a aula introdutória e assinar a matrícula podem ser pessoas diferentes.</p>'
+    + barrasSimples(v.map(x=>({nome:x.nome, v:x.vendas})), n=>nf0.format(n)+' vendas', 'var(--saq)')
+    + '<p class="note" style="margin-top:10px">'+N(tot)+' vendas de balcão no mês.</p></div>';
+}
+
+function blocoGrade(){
+  const det = (dados()||{}).detalhe||{};
+  const profs = det.aulas_por_professor || [];
+  const mods = det.aulas_por_modalidade || [];
+  if(!profs.length) return '';
+  const totAulas = profs.reduce((s,p)=>s+p.aulas,0);
+  const totPres = profs.reduce((s,p)=>s+p.presencas,0);
+  const maior = profs[0];
+  let h = '<div class="tiles">'
+    + tile('Aulas dadas na semana', N(totAulas), 'mute', '<span>'+N(profs.length)+' professores em quadra</span>')
+    + tile('Quem mais deu aula', esc(maior.professor), 'mute', '<span>'+N(maior.aulas)+' aulas · '+P(maior.aulas/totAulas*100)+' da grade</span>')
+    + tile('Presenças registradas', N(totPres), 'mute', '<span>média de '+nf1.format(totAulas>0?totPres/totAulas:0)+' por aula</span>')
+    + tile('Modalidades na grade', N(mods.length), 'mute', '<span>turmas diferentes na semana</span>')
+    + '</div>';
+
+  h += '<div class="card" style="margin-top:14px"><h3>Quem deu aula na semana</h3>'
+    + '<p class="note">Sai direto da grade do EVO. Presenças são os check-ins registrados na sessão — turmas infantis aparecem com zero porque as crianças não passam na catraca.</p>'
+    + barrasSimples(profs.map(p=>({nome:p.professor, v:p.aulas})), v=>nf0.format(v)+' aulas', 'var(--s1)')
+    + '<div class="tbl-wrap" style="margin-top:14px"><table><thead><tr><th>Professor</th><th>Aulas</th><th>Presenças</th><th>Média por aula</th><th class="wrap">Modalidades</th></tr></thead><tbody>'
+    + profs.map(p=>'<tr><td>'+esc(p.professor)+'</td><td>'+N(p.aulas)+'</td><td>'+N(p.presencas)+'</td>'
+        + '<td>'+(p.media_por_aula!=null?nf1.format(p.media_por_aula):'—')+'</td>'
+        + '<td class="note wrap">'+esc((p.modalidades||[]).join(', '))+'</td></tr>').join('')
+    + '</tbody></table></div></div>';
+
+  if(mods.length) h += '<div class="card" style="margin-top:14px"><h3>Modalidades da semana</h3>'
+    + '<p class="note">Quantas aulas cada turma teve, quanta gente apareceu e quem conduziu. Ocupação baixa numa turma cheia de aulas é grade mal distribuída, não falta de aluno.</p>'
+    + '<div class="tbl-wrap"><table><thead><tr><th>Modalidade</th><th>Aulas</th><th>Presenças</th><th>Média</th><th>Ocupação</th><th class="wrap">Professores</th></tr></thead><tbody>'
+    + mods.map(m=>'<tr><td>'+esc(m.modalidade)+'</td><td>'+N(m.aulas)+'</td><td>'+N(m.presencas)+'</td>'
+        + '<td>'+(m.media_por_aula!=null?nf1.format(m.media_por_aula):'—')+'</td>'
+        + '<td>'+(m.ocupacao!=null?P(m.ocupacao):'—')+'</td>'
+        + '<td class="note wrap">'+esc((m.professores||[]).join(', '))+'</td></tr>').join('')
+    + '</tbody></table></div></div>';
+  return h;
+}
+
+function blocoPlanos(d){
+  const ps = planosDoMes(d);
+  if(!ps.length){
+    return '<div class="empty" style="padding:32px"><h3>Nenhum plano lançado ainda</h3>'
+      + '<p>Em "Lançar mês", preencha quantos alunos e quantas vendas cada plano teve. O painel monta a distribuição, o mix de receita e o ticket de cada plano sozinho.</p></div>';
+  }
+  const totAl = ps.reduce((s,p)=>s+p.alunos,0);
+  const totVe = ps.reduce((s,p)=>s+p.vendas,0);
+  const totRe = ps.reduce((s,p)=>s+p.receita,0);
+  const comTicket = ps.map(p=>({...p, ticket: p.alunos>0 ? p.receita/p.alunos : null}));
+  const maisAlunos = ps.reduce((a,b)=>a.alunos>b.alunos?a:b);
+  const maisVendas = ps.reduce((a,b)=>a.vendas>b.vendas?a:b);
+  const comT = comTicket.filter(p=>p.ticket!=null);
+  const maiorTicket = comT.length ? comT.reduce((a,b)=>a.ticket>b.ticket?a:b) : null;
+  const menorTicket = comT.length ? comT.reduce((a,b)=>a.ticket<b.ticket?a:b) : null;
+
+  let h = '<div class="tiles">'
+    + tile('Planos ativos', N(ps.length), 'mute', '<span>'+N(totAl)+' alunos distribuídos</span>')
+    + tile('Plano com mais alunos', esc(maisAlunos.nome), 'mute', '<span>'+N(maisAlunos.alunos)+' alunos · '+P(maisAlunos.alunos/totAl*100)+' da base</span>')
+    + tile('Mais vendido no mês', totVe>0?esc(maisVendas.nome):'—', 'mute', '<span>'+N(maisVendas.vendas)+' de '+N(totVe)+' vendas</span>')
+    + (maiorTicket && menorTicket && maiorTicket.nome!==menorTicket.nome
+        ? tile('Amplitude de ticket', RS2(maiorTicket.ticket-menorTicket.ticket), 'mute',
+            '<span>'+esc(maiorTicket.nome)+' vs. '+esc(menorTicket.nome)+'</span>')
+        : tile('Ticket médio da base', totAl>0?RS2(totRe/totAl):'—','mute','<span>receita ÷ alunos</span>'))
+    + '</div>';
+
+  h += '<div class="grid2" style="margin-top:14px">'
+    + '<div class="card"><h3>Onde estão os alunos</h3><p class="note">Quantos alunos cada plano tem hoje e quanto isso representa da base.</p>'
+      + barrasPlano(ps, 'alunos', v=>nf0.format(v), 'var(--s1)') + '</div>'
+    + '<div class="card"><h3>O que vendeu no mês</h3><p class="note">Vendas fechadas por plano no período — mostra para onde a base está migrando.</p>'
+      + barrasPlano(ps, 'vendas', v=>nf0.format(v), 'var(--saq)') + '</div>'
+    + '</div>';
+
+  if(totRe>0) h += '<div class="card" style="margin-top:14px"><h3>De onde vem a receita</h3>'
+    + '<p class="note">Participação de cada plano na receita recorrente. Passe o mouse para ver os valores.</p>'
+    + composicaoReceita(ps) + '</div>';
+
+  /* tabela */
+  const ord = [...comTicket].sort((a,b)=>b.alunos-a.alunos);
+  h += '<div class="tbl-wrap" style="margin-top:14px"><table><thead><tr>'
+    + '<th>Plano</th><th>Alunos</th><th>% da base</th><th>Vendas no mês</th><th>Receita</th><th>% da receita</th><th>Ticket do plano</th><th>Sem valor</th>'
+    + '</tr></thead><tbody>'
+    + ord.map(p=>'<tr><td>'+esc(p.nome)+'</td>'
+      + '<td>'+N(p.alunos)+'</td>'
+      + '<td>'+(totAl>0?P(p.alunos/totAl*100):'—')+'</td>'
+      + '<td>'+N(p.vendas)+'</td>'
+      + '<td>'+RS(p.receita)+'</td>'
+      + '<td>'+(totRe>0?P(p.receita/totRe*100):'—')+'</td>'
+      + '<td>'+(p.ticket!=null?RS2(p.ticket):'—')+'</td>'
+      + '<td'+(p.sem_valor>0?' class="warn-cell"':'')+'>'+(p.sem_valor>0?N(p.sem_valor):'—')+'</td></tr>').join('')
+    + '<tr style="font-weight:700;background:var(--surface-2)"><td>Total</td><td>'+N(totAl)+'</td><td>100,0%</td>'
+    + '<td>'+N(totVe)+'</td><td>'+RS(totRe)+'</td><td>100,0%</td><td>'+(totAl>0?RS2(totRe/totAl):'—')+'</td>'
+    + '<td>'+N(ord.reduce((t,p)=>t+(p.sem_valor||0),0))+'</td></tr>'
+    + '</tbody></table></div>';
+
+  /* A EVO deixa o valor de venda vazio em parte dos contratos vigentes,
+     sobretudo nos recorrentes antigos. O aluno é real e conta na base; o que
+     falta é o valor, e isso puxa a receita do plano para baixo. */
+  const semVal = ord.reduce((t,p)=>t+(p.sem_valor||0),0);
+  if(semVal>0){
+    const piores = ord.filter(p=>p.sem_valor>0).sort((a,b)=>b.sem_valor-a.sem_valor).slice(0,3);
+    h += '<div class="alerta" style="margin-top:14px"><b>'+N(semVal)+' '
+      + (semVal===1?'contrato vigente está sem valor de venda no EVO':'contratos vigentes estão sem valor de venda no EVO')+'.</b> '
+      + 'Esses alunos contam na base normalmente — o que falta é o valor, então a receita destes planos aparece menor do que é: '
+      + piores.map(p=>esc(p.nome)+' ('+N(p.sem_valor)+')').join(', ')+'. '
+      + 'Preencher o valor no cadastro do contrato corrige o ticket e o mix na próxima coleta.</div>';
+  }
+
+  /* alerta de divergência com o MRR lançado */
+  if(totRe>0 && d.mrr>0){
+    const dif = Math.abs(totRe - d.mrr);
+    if(dif/d.mrr > 0.02)
+      h += '<div class="alerta" style="margin-top:14px"><b>A soma dos planos não bate com a receita recorrente.</b> '
+        + 'Os planos somam '+RS(totRe)+' e você lançou '+RS(d.mrr)+' de receita recorrente — diferença de '+RS(dif)+'. '
+        + 'Falta algum plano na lista ou um dos valores está errado.</div>';
+  }
+  return h;
+}
+
+/* ============ premissas, sazonalidade e projeção ============ */
+const media  = a => a.length ? a.reduce((x,y)=>x+y,0)/a.length : null;
+const desvio = a => { if(a.length<2) return 0; const m=media(a); return Math.sqrt(a.reduce((s,v)=>s+(v-m)*(v-m),0)/(a.length-1)); };
+const mesCal = k => +k.split('-')[1];
+
+/* índice sazonal multiplicativo, amortecido quando há pouca observação */
+function sazonalidade(chaves, vals){
+  const bons = vals.filter(v=>v!=null && isFinite(v));
+  const geral = media(bons);
+  const idx = {}; const cont = {};
+  if(!geral || geral<=0 || bons.length<12){ for(let m=1;m<=12;m++) idx[m]=1; return {idx, confiavel:false}; }
+  const porMes = {};
+  chaves.forEach((k,i)=>{ const v=vals[i]; if(v==null||!isFinite(v)) return; const m=mesCal(k); (porMes[m]=porMes[m]||[]).push(v); });
+  for(let m=1;m<=12;m++){
+    const arr = porMes[m];
+    if(!arr || !arr.length){ idx[m]=1; cont[m]=0; continue; }
+    const bruto = media(arr)/geral;
+    const peso = Math.min(1, arr.length/2);        // 1 observação = metade do efeito
+    idx[m] = 1 + (bruto-1)*peso;
+    cont[m] = arr.length;
+  }
+  const m1 = media(Object.values(idx));
+  if(m1>0) for(let m=1;m<=12;m++) idx[m] = idx[m]/m1;
+  const minObs = Math.min(...Object.values(cont).filter(c=>c>0), 0);
+  return {idx, confiavel: bons.length>=24, obs:cont};
+}
+
+function premissas(s){
+  const chaves = s.map(d=>d.mes);
+  const ent = s.map(d=>(d.novos||0)+(d.retornos||0));
+  const chn = s.map(d=>d.churnPct);
+  const sE = sazonalidade(chaves, ent);
+  const sC = sazonalidade(chaves, chn);
+  const entD = ent.map((v,i)=> v/(sE.idx[mesCal(chaves[i])]||1));
+  const chnD = chn.map((v,i)=> v==null?null : v/(sC.idx[mesCal(chaves[i])]||1));
+  const jan = Math.min(6, s.length);
+  const ultE = entD.slice(-jan);
+  const ultC = chnD.slice(-jan).filter(v=>v!=null && isFinite(v));
+  const Ebar = media(ultE) || 0;
+  const Cbar = media(ultC) || 0;
+  /* tendência: regressão linear simples sobre entradas dessazonalizadas → % ao mês, limitada a ±3% */
+  let g = 0;
+  if(entD.length>=4){
+    const n = entD.length, xs = entD.map((_,i)=>i);
+    const mx = media(xs), my = media(entD);
+    let num=0, den=0;
+    for(let i=0;i<n;i++){ num += (xs[i]-mx)*(entD[i]-my); den += (xs[i]-mx)*(xs[i]-mx); }
+    const slope = den>0 ? num/den : 0;
+    g = my>0 ? Math.max(-0.03, Math.min(0.03, slope/my)) : 0;
+  }
+  return {
+    Ebar, sigE: desvio(ultE), Cbar, sigC: desvio(ultC), g,
+    idxE: sE.idx, idxC: sC.idx,
+    sazonalConfiavel: sE.confiavel, historico: s.length,
+    baseE: jan
+  };
+}
+
+function cenariosPadrao(p){
+  return {
+    conservador: {ent: Math.max(0, p.Ebar - p.sigE), churn: p.Cbar + p.sigC, g: 0,            ticket: 0},
+    realista:    {ent: p.Ebar,                        churn: p.Cbar,         g: p.g*100,       ticket: 0},
+    otimista:    {ent: p.Ebar + p.sigE,               churn: Math.max(0.5, p.Cbar - p.sigC), g: p.g*100, ticket: 0}
+  };
+}
+
+function mesDoTeto(pontos, teto){
+  if(teto==null || !isFinite(teto)) return null;
+  const hit = pontos.find(x=>x.alunos>=teto);
+  return hit ? hit.mes : null;
+}
+function projetar(s, p, cen, horizonte){
+  const ult = s[s.length-1];
+  let alunos = ult.alunos, ticket = ult.ticket || 0;
+  const [a0,m0] = ult.mes.split('-').map(Number);
+  const out = [];
+  for(let k=1;k<=horizonte;k++){
+    const dt = new Date(a0, m0-1+k, 1);
+    const chave = dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0');
+    const mc = dt.getMonth()+1;
+    const entradas = Math.max(0, cen.ent * (p.idxE[mc]||1) * Math.pow(1+(cen.g/100), k));
+    const churn    = Math.max(0, cen.churn * (p.idxC[mc]||1));
+    const saidas   = alunos * churn/100;
+    alunos = Math.max(0, alunos - saidas + entradas);
+    ticket = ticket * (1 + (cen.ticket||0)/100);
+    out.push({mes:chave, alunos, entradas, saidas, churn, mrr: alunos*ticket});
+  }
+  return out;
+}
+
+/* ============ gráfico de projeção ============ */
+function grafProjecao(hist, proj, chave, fmt, teto){
+  const W=620, H=250, ml=58, mr=76, mt=16, mb=30;
+  const serieH = hist.map(d=>({mes:d.mes, v:d[chave]}));
+  const linhas = [
+    {nome:'Conservador', cor:'var(--c1)', pts:proj.conservador},
+    {nome:'Realista',    cor:'var(--c2)', pts:proj.realista},
+    {nome:'Otimista',    cor:'var(--c3)', pts:proj.otimista}
+  ];
+  const todos = serieH.map(d=>d.v).concat(...linhas.map(l=>l.pts.map(p=>p[chave]))).filter(v=>v!=null&&isFinite(v));
+  if(teto!=null && isFinite(teto)) todos.push(teto*1.04);
+  if(!todos.length) return '';
+  let min = Math.min(...todos), max = Math.max(...todos);
+  const pad = (max-min)*0.14 || max*0.1 || 1;
+  min = Math.max(0, min-pad); max = max+pad;
+  const total = serieH.length + linhas[0].pts.length;
+  const iw = W-ml-mr, ih = H-mt-mb;
+  const X = i => ml + i*iw/Math.max(1,total-1);
+  const Y = v => mt + ih - (v-min)/(max-min)*ih;
+  let g='';
+  [min,(min+max)/2,max].forEach(t=>{
+    g += '<line x1="'+ml+'" x2="'+(W-mr)+'" y1="'+Y(t).toFixed(1)+'" y2="'+Y(t).toFixed(1)+'" stroke="var(--grid)" stroke-width="1"/>'
+      + '<text x="'+(ml-9)+'" y="'+(Y(t)+4).toFixed(1)+'" text-anchor="end" font-size="10.5" fill="var(--ink-3)">'+fmt(t)+'</text>';
+  });
+  if(teto!=null && isFinite(teto) && teto>=min && teto<=max){
+    g += '<line x1="'+ml+'" x2="'+(W-mr)+'" y1="'+Y(teto).toFixed(1)+'" y2="'+Y(teto).toFixed(1)+'" stroke="var(--crit)" stroke-width="2" stroke-dasharray="7 4"/>'
+       + '<text x="'+(ml+6)+'" y="'+(Y(teto)-7).toFixed(1)+'" font-size="10.5" font-weight="700" fill="var(--crit-ink)">teto da estrutura · '+fmt(teto)+'</text>';
+  }
+  /* divisor entre realizado e projetado */
+  const xd = X(serieH.length-1);
+  g += '<line x1="'+xd.toFixed(1)+'" x2="'+xd.toFixed(1)+'" y1="'+mt+'" y2="'+(mt+ih)+'" stroke="var(--axis)" stroke-width="1" stroke-dasharray="3 3"/>'
+     + '<text x="'+(xd+6).toFixed(1)+'" y="'+(mt+11)+'" font-size="10" fill="var(--ink-3)" font-weight="600">projeção</text>';
+  /* histórico */
+  const ph = serieH.filter(d=>d.v!=null&&isFinite(d.v)).map((d,k)=>{ const i=serieH.indexOf(d); return (k?'L':'M')+X(i).toFixed(1)+' '+Y(d.v).toFixed(1); }).join(' ');
+  let corpo = '<path d="'+ph+'" fill="none" stroke="var(--ink-3)" stroke-width="2" stroke-linejoin="round"/>';
+  let hits = '';
+  serieH.forEach((d,i)=>{ if(d.v==null||!isFinite(d.v)) return;
+    hits += '<circle cx="'+X(i).toFixed(1)+'" cy="'+Y(d.v).toFixed(1)+'" r="9" fill="transparent" data-tip="'+esc('<b>'+fmt(d.v)+'</b><br>'+rotuloLongo(d.mes)+' · realizado')+'"/>'; });
+  const ultH = serieH[serieH.length-1];
+  linhas.forEach(l=>{
+    const pts = [{i:serieH.length-1, v:ultH.v}].concat(l.pts.map((p,k)=>({i:serieH.length+k, v:p[chave]})));
+    const dpath = pts.map((p,k)=>(k?'L':'M')+X(p.i).toFixed(1)+' '+Y(p.v).toFixed(1)).join(' ');
+    corpo += '<path d="'+dpath+'" fill="none" stroke="'+l.cor+'" stroke-width="2" stroke-linejoin="round" stroke-dasharray="5 3"/>';
+    const fim = pts[pts.length-1];
+    corpo += '<circle cx="'+X(fim.i).toFixed(1)+'" cy="'+Y(fim.v).toFixed(1)+'" r="3.5" fill="'+l.cor+'"/>'
+      + '<text x="'+(X(fim.i)+7).toFixed(1)+'" y="'+(Y(fim.v)+3.5).toFixed(1)+'" font-size="10.5" font-weight="700" fill="'+l.cor+'">'+l.nome.slice(0,4)+'.</text>';
+    l.pts.forEach((p,k)=>{
+      hits += '<circle cx="'+X(serieH.length+k).toFixed(1)+'" cy="'+Y(p[chave]).toFixed(1)+'" r="8" fill="transparent" data-tip="'+esc('<b>'+fmt(p[chave])+'</b><br>'+rotuloLongo(p.mes)+' · '+l.nome)+'"/>';
+    });
+  });
+  let xl='';
+  const passo = Math.ceil(total/8);
+  const chaves = serieH.map(d=>d.mes).concat(linhas[0].pts.map(p=>p.mes));
+  chaves.forEach((c,i)=>{ if(i%passo===0 || i===total-1)
+    xl += '<text x="'+X(i).toFixed(1)+'" y="'+(H-8)+'" text-anchor="middle" font-size="10.5" fill="var(--ink-3)">'+rotulo(c)+'</text>'; });
+  return '<div class="chartbox"><svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Projeção em três cenários">'+g+corpo+hits+xl+'</svg></div>';
+}
+
+/* ============ bloco de cenários ============ */
+function blocoCenarios(s){
+  if(s.length < 3){
+    return '<div class="empty" style="padding:30px"><h3>Faltam meses para projetar</h3>'
+      + '<p>A projeção precisa de pelo menos 3 meses fechados para separar tendência de ruído. Você tem '+s.length+'. '
+      + 'Com 12 meses ela passa a considerar sazonalidade; com 24, a sazonalidade vira confiável.</p></div>';
+  }
+  const p = premissas(s);
+  const padrao = cenariosPadrao(p);
+  const salvos = dados().cenarios || {};
+  const cen = {
+    conservador: {...padrao.conservador, ...(salvos.conservador||{})},
+    realista:    {...padrao.realista,    ...(salvos.realista||{})},
+    otimista:    {...padrao.otimista,    ...(salvos.otimista||{})}
+  };
+  const horizonte = (dados().horizonte)||12;
+  const proj = {
+    conservador: projetar(s, p, cen.conservador, horizonte),
+    realista:    projetar(s, p, cen.realista,    horizonte),
+    otimista:    projetar(s, p, cen.otimista,    horizonte)
+  };
+  const fim = k => proj[k][proj[k].length-1];
+  const hoje = s[s.length-1];
+  const teto = tetoAtual();
+  const folga = (teto!=null) ? teto - hoje.alunos : null;
+
+  let h = '';
+
+  if(teto!=null && teto>0){
+    const bate = {
+      conservador: mesDoTeto(proj.conservador, teto),
+      realista:    mesDoTeto(proj.realista, teto),
+      otimista:    mesDoTeto(proj.otimista, teto)
+    };
+    const qualquer = bate.conservador||bate.realista||bate.otimista;
+    const pctFolga = teto>0 ? folga/teto*100 : null;
+    h += '<div class="card teto-card"><h3>O teto da estrutura</h3>'
+      + '<p class="note">O limite não é tatame — é estacionamento, banheiro, armário e lounge. Enquanto a base não chega aqui, obra não compra crescimento; depois daqui, ela deixa de ser opcional.</p>'
+      + '<div class="tiles">'
+      + tile('Teto da estrutura hoje', N(teto)+' <small>alunos</small>', 'mute',
+          '<button class="btn btn-sm" data-acao="editteto">Ajustar</button>')
+      + tile('Folga que resta', N(folga)+' <small>alunos</small>', folga<=0?'crit':(pctFolga<15?'crit':(pctFolga<30?'warn':'good')),
+          '<span>'+P(pctFolga)+' da capacidade ainda livre</span>')
+      + tile('Otimista chega em', bate.otimista ? rotuloLongo(bate.otimista) : 'Não chega',
+          bate.otimista?'warn':'good', '<span>'+(bate.otimista?'cenário mais rápido':'fora do horizonte de '+horizonte+' meses')+'</span>')
+      + tile('Realista chega em', bate.realista ? rotuloLongo(bate.realista) : 'Não chega',
+          bate.realista?'warn':'good', '<span>'+(bate.realista?'ritmo atual mantido':'fora do horizonte de '+horizonte+' meses')+'</span>')
+      + '</div>'
+      + (qualquer
+        ? '<p class="note" style="margin-top:14px"><b>Leitura:</b> algum cenário encosta no teto dentro do horizonte. A obra precisa estar pronta <b>antes</b> dessa data — e precisa resolver banheiro, armário e estacionamento, não área de treino.</p>'
+        : '<p class="note" style="margin-top:14px"><b>Leitura:</b> nenhum cenário encosta no teto em '+horizonte+' meses. A obra pode esperar, ou precisa de outra justificativa que não seja capacidade.</p>')
+      + '</div>';
+  }
+
+  /* como a conta é feita */
+  h += '<div class="card"><h3>De onde saem as premissas</h3>'
+    + '<p class="note">Nada aqui é chute: tudo vem do seu histórico. Você pode sobrescrever qualquer número.</p>'
+    + '<div class="eq" style="display:block">'
+    + '<div class="formula">alunos<sub>mês seguinte</sub> = alunos<sub>mês</sub> − (alunos<sub>mês</sub> × churn × sazonalidade<sub>churn</sub>) + (entradas × sazonalidade<sub>entradas</sub> × (1 + tendência)<sup>meses</sup>)</div>'
+    + '</div>'
+    + '<div class="tiles" style="margin-top:14px">'
+    + tile('Entradas por mês', nf1.format(p.Ebar)+' <small>± '+nf1.format(p.sigE)+'</small>', 'mute', '<span>média dessazonalizada dos últimos '+p.baseE+' meses</span>')
+    + tile('Churn por mês', P(p.Cbar)+' <small>± '+nf1.format(p.sigC)+'</small>', 'mute', '<span>mesma base, já sem efeito de mês</span>')
+    + tile('Tendência de captação', (p.g>=0?'+':'')+nf1.format(p.g*100)+'% <small>/mês</small>', 'mute', '<span>regressão sobre as entradas</span>')
+    + tile('Sazonalidade', p.sazonalConfiavel?'Confiável':(p.historico>=12?'Parcial':'Desligada'), p.sazonalConfiavel?'good':(p.historico>=12?'warn':'mute'),
+        '<span>'+(p.sazonalConfiavel?'2+ anos de histórico':(p.historico>=12?'1 ano — efeito amortecido pela metade':'precisa de 12 meses'))+'</span>')
+    + '</div>'
+    + '<p class="note" style="margin-top:14px">A faixa <b>±</b> é o desvio-padrão do seu próprio histórico. O conservador tira um desvio das entradas e soma um no churn; o otimista faz o contrário. '
+    + 'Isso cobre cerca de dois terços dos meses que você realmente teve — é uma faixa medida, não uma margem inventada.</p>'
+    + '</div>';
+
+  /* resultado dos três cenários */
+  h += '<div class="cen-grid">' + [
+    ['conservador','Conservador','c1','Capta um desvio abaixo da média e perde um acima. É o mês ruim se repetindo.'],
+    ['realista','Realista','c2','Mantém a média e a tendência atuais de captação e churn.'],
+    ['otimista','Otimista','c3','Capta um desvio acima e segura o churn um abaixo. Exige ação, não sorte.']
+  ].map(([k,nome,cor,desc])=>{
+    const f = fim(k);
+    const dAl = f.alunos - hoje.alunos;
+    const pctAl = hoje.alunos ? dAl/hoje.alunos*100 : null;
+    return '<div class="cen-card" style="border-top-color:var(--'+cor+')">'
+      + '<div class="cen-h"><span class="cen-dot" style="background:var(--'+cor+')"></span><h4>'+nome+'</h4></div>'
+      + '<p class="cen-desc">'+desc+'</p>'
+      + '<div class="cen-num"><span class="k">Alunos em '+horizonte+' meses</span><span class="v">'+N(Math.round(f.alunos))+'</span>'
+      + '<span class="d '+(dAl>=0?'up':'down')+'">'+(dAl>=0?'+':'')+N(Math.round(dAl))+' ('+(pctAl>=0?'+':'')+nf1.format(pctAl)+'%)</span></div>'
+      + '<div class="cen-num"><span class="k">Receita recorrente</span><span class="v">'+RS(f.mrr)+'</span>'
+      + '<span class="d '+((f.mrr-hoje.mrr)>=0?'up':'down')+'">'+((f.mrr-hoje.mrr)>=0?'+':'')+RS(f.mrr-hoje.mrr)+'</span></div>'
+      + '<div class="cen-prem">'
+      + '<label>Entradas/mês<input type="number" step="0.5" min="0" data-cen="'+k+'" data-campo="ent" value="'+(Math.round(cen[k].ent*10)/10)+'"></label>'
+      + '<label>Churn %<input type="number" step="0.1" min="0" data-cen="'+k+'" data-campo="churn" value="'+(Math.round(cen[k].churn*100)/100)+'"></label>'
+      + '<label>Tendência %/mês<input type="number" step="0.1" data-cen="'+k+'" data-campo="g" value="'+(Math.round(cen[k].g*10)/10)+'"></label>'
+      + '<label>Reajuste ticket %/mês<input type="number" step="0.1" data-cen="'+k+'" data-campo="ticket" value="'+(Math.round((cen[k].ticket||0)*10)/10)+'"></label>'
+      + '</div></div>';
+  }).join('') + '</div>';
+
+  h += '<div class="actions" style="margin:14px 0 0">'
+    + '<button class="btn btn-primary btn-sm" data-acao="salvarcen">Aplicar premissas</button>'
+    + '<button class="btn btn-sm" data-acao="resetcen">Voltar ao calculado</button>'
+    + '<label style="margin-left:auto;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-2)">Horizonte'
+    + '<select id="horizonte" class="btn btn-sm" style="padding:6px 8px">'
+    + [6,12,18,24].map(n=>'<option value="'+n+'"'+(n===horizonte?' selected':'')+'>'+n+' meses</option>').join('')
+    + '</select></label></div>';
+
+  h += '<div class="grid2" style="margin-top:14px">'
+    + '<div class="card"><h3>Alunos ativos projetados</h3><p class="note">Linha cinza é o realizado. Tracejadas são os três cenários. A linha vermelha é o teto da estrutura.</p>'
+      + grafProjecao(s, proj, 'alunos', v=>nf0.format(v), teto) + '</div>'
+    + '<div class="card"><h3>Receita recorrente projetada</h3><p class="note">Alunos projetados × ticket médio atual (mais o reajuste que você definir).</p>'
+      + grafProjecao(s, proj, 'mrr', v=>'R$ '+nf0.format(v/1000)+'k') + '</div>'
+    + '</div>';
+
+  /* tabela mês a mês */
+  h += '<div class="tbl-wrap" style="margin-top:14px"><table><thead><tr>'
+    + '<th>Mês</th><th>Conserv. alunos</th><th>Realista alunos</th><th>Otimista alunos</th>'
+    + '<th>Conserv. MRR</th><th>Realista MRR</th><th>Otimista MRR</th></tr></thead><tbody>'
+    + proj.realista.map((_,i)=>'<tr><td>'+rotulo(proj.realista[i].mes)+'</td>'
+      + '<td>'+N(Math.round(proj.conservador[i].alunos))+'</td>'
+      + '<td>'+N(Math.round(proj.realista[i].alunos))+'</td>'
+      + '<td>'+N(Math.round(proj.otimista[i].alunos))+'</td>'
+      + '<td>'+RS(proj.conservador[i].mrr)+'</td>'
+      + '<td>'+RS(proj.realista[i].mrr)+'</td>'
+      + '<td>'+RS(proj.otimista[i].mrr)+'</td></tr>').join('')
+    + '</tbody></table></div>';
+
+  return h;
+}
+
+function salvarCenarios(){
+  const alvo = dados();
+  const c = alvo.cenarios ? {...alvo.cenarios} : {};
+  document.querySelectorAll('[data-cen]').forEach(el=>{
+    const k = el.getAttribute('data-cen'), campo = el.getAttribute('data-campo');
+    const v = parseFloat(String(el.value).replace(',','.'));
+    if(!isFinite(v)) return;
+    c[k] = {...(c[k]||{})}; c[k][campo] = v;
+  });
+  alvo.cenarios = c;
+  const hz = document.getElementById('horizonte');
+  if(hz) alvo.horizonte = +hz.value;
+  render(); persistir();
+}
+function editarTeto(){
+  const atual = tetoAtual();
+  const v = prompt('Quantos alunos a estrutura atual comporta?\n\nConsidere o que limita de verdade: vagas de estacionamento, banheiros, armários e área de lounge — não o tamanho do tatame.', atual);
+  if(v===null) return;
+  const n = parseFloat(String(v).replace(',','.'));
+  if(!isFinite(n) || n<=0) return;
+  dados().teto = n;
+  render(); persistir();
+}
+function editarValorAula(){
+  const v = prompt('Quanto a academia paga por aula dada?\n\nVale para aula coletiva e para aula introdutória. Serve só para o cálculo da folha no painel — não altera nada no EVO.', valorAula());
+  if(v===null) return;
+  const n = parseFloat(String(v).replace('.','').replace(',','.'));
+  if(!isFinite(n) || n<=0) return;
+  dados().valorAula = n;
+  render(); persistir();
+}
+function resetarCenarios(){ const alvo = dados(); alvo.cenarios = null; render(); persistir(); }
+
+/* ============ pauta automática ============ */
+function pauta(s, metas){
+  const d = s[s.length-1], itens = [];
+  const push = (grav, titulo, num, acao) => itens.push({grav, titulo, num, acao});
+
+  if(d.fecha === false)
+    push('crit','Dado inconsistente','diferença de '+N(Math.abs(d.esperado-d.alunos))+' alunos',
+      'Conferir o movimento no EVO antes de decidir qualquer coisa com estes números.');
+
+  const sC = sem(d.churnPct, metas.churnBom, metas.churnLim, 'menor');
+  if(sC!=='good' && d.churnPct!=null)
+    push(sC,'Churn acima do alvo', P(d.churnPct)+' · alvo ≤'+P(metas.churnBom),
+      N(d.cancelamentos)+' saídas no mês, '+RS(d.receitaPerdida)+' de receita. Quebrar os cancelamentos por tempo de casa: menos de 3 meses é venda, mais de 12 é progressão ou horário.');
+
+  const sG = sem(d.crescPct, metas.crescBom, metas.crescLim, 'maior');
+  if(sG!=='good' && d.crescPct!=null)
+    push(sG,'Crescimento abaixo da meta', P(d.crescPct)+' · meta ≥'+P(metas.crescBom),
+      'Entraram '+N((d.novos||0)+(d.retornos||0))+' e saíram '+N(d.cancelamentos)+'. Decidir se o ajuste vem por captação ou por retenção — os dois custam coisas diferentes.');
+
+  const sN = sem(d.noShow, metas.noShowBom, metas.noShowLim, 'menor');
+  if(sN!=='good' && d.noShow!=null)
+    push(sN,'No-show alto na experimental', P(d.noShow)+' · alvo ≤'+P(metas.noShowBom),
+      N((d.agendadas||0)-(d.realizadas||0))+' pessoas marcaram e não apareceram. É confirmação e lembrete, não é venda — dono: vendedor.');
+
+  const sV = sem(d.convExp, metas.convBom, metas.convLim, 'maior');
+  if(sV!=='good' && d.convExp!=null)
+    push(sV,'Conversão da experimental abaixo do alvo', P(d.convExp)+' · alvo ≥'+P(metas.convBom),
+      'De '+N(d.realizadas)+' experimentais dadas, '+N(d.matriculas)+' fecharam. Dono: professores que dão a aula.');
+
+  const sI = sem(d.inadPct, metas.inadBom, metas.inadLim, 'menor');
+  if(sI!=='good' && d.inadPct!=null)
+    push(sI,'Inadimplência acima do alvo', P(d.inadPct)+' · alvo ≤'+P(metas.inadBom),
+      RS(d.valorInad)+' em atraso, '+N(d.inadimplentes)+' alunos. Definir a régua de cobrança e quem executa.');
+
+  /* professor muito abaixo da média da casa */
+  const profs = (d.professores||[]).filter(p=>+p.realizadas>=5).map(p=>({...p, conv:(+p.fechadas)/(+p.realizadas)*100}));
+  if(profs.length>=2 && d.convExp!=null){
+    const pior = profs.reduce((a,b)=>a.conv<b.conv?a:b);
+    if(pior.conv < d.convExp - 15)
+      push('warn','Diferença grande entre professores', pior.nome+' em '+P(pior.conv)+' contra '+P(d.convExp)+' da casa',
+        'Diferença de conversão entre professores é treinável. Ver o que o de cima faz na experimental e padronizar.');
+  }
+
+  const ordem = {crit:0, warn:1};
+  itens.sort((a,b)=>(ordem[a.grav]??2)-(ordem[b.grav]??2));
+  return itens;
+}
+
+/* ============ modo apresentação ============ */
+let slideAtual = 0, slides = [];
+
+function montarSlides(){
+  const s = serie(); if(!s.length) return [];
+  const metas = dados().metas || METAS_PADRAO;
+  const idx = s.findIndex(x=>x.mes===mesAtivo);
+  const d = s[idx], ant = idx>0 ? s[idx-1] : null;
+  const ate = s.slice(0, idx+1);
+  const lista = pauta(ate, metas);
+  const L = [];
+
+  L.push({t:'Capa', h:
+    '<div class="ap-capa">'
+    + '<span class="ap-eyebrow">Reunião de sócios · Alliance SJC</span>'
+    + '<h1 class="ap-titulo">'+rotuloLongo(d.mes)+'</h1>'
+    + '<div class="ap-capa-nums">'
+    + '<div><span class="k">Alunos ativos</span><span class="v">'+N(d.alunos)+'</span></div>'
+    + '<div><span class="k">Crescimento líquido</span><span class="v">'+P(d.crescPct)+'</span></div>'
+    + '<div><span class="k">Receita recorrente</span><span class="v">'+RS(d.mrr)+'</span></div>'
+    + '</div>'
+    + '<p class="ap-nota">'+(lista.length
+        ? lista.length+' ponto'+(lista.length>1?'s':'')+' fora do alvo para decidir hoje.'
+        : 'Nenhum indicador fora do alvo neste mês.')+'</p></div>'});
+
+  L.push({t:'Placar', h:'<h2 class="ap-h">O placar do mês</h2>'+blocoPlacar(d, ant, metas)});
+
+  L.push({t:'Alunos', h:'<h2 class="ap-h">Movimento de alunos</h2>'+blocoEquacao(d)
+    + '<div class="grid2" style="margin-top:16px">'
+    + '<div class="card"><h3>Entradas contra cancelamentos</h3>'
+      + '<div class="legend"><span><i style="background:var(--s1)"></i>Entradas</span><span><i style="background:var(--sneg)"></i>Cancelamentos</span></div>'
+      + grafMovimento(ate)+'</div>'
+    + '<div class="card"><h3>Alunos ativos</h3>'+grafLinha(ate.map(x=>({m:x.mes,v:x.alunos})),'var(--s1)','var(--s1-soft)',v=>nf0.format(v),'Alunos ativos')+'</div>'
+    + '</div>'});
+
+  L.push({t:'Funil', h:'<h2 class="ap-h">Funil da aula experimental</h2><div class="card">'+blocoFunil(d, metas)+'</div>'});
+
+  const apSem = (d.professoresSemana && d.professoresSemana.length)
+    ? '<div class="fsep" style="margin-top:16px">Na semana</div>'+grafProfessores(d.professoresSemana) : '';
+  L.push({t:'Professores', h:'<h2 class="ap-h">Conversão por professor</h2><div class="card">'
+    + (apSem ? '<div class="fsep">No mês</div>' : '') + grafProfessores(d.professores) + apSem + '</div>'});
+
+  const apBase = blocoBase();
+  if(apBase) L.push({t:'Base', h:'<h2 class="ap-h">Composição da base</h2>'+apBase});
+  const apGrade = blocoGrade();
+  if(apGrade) L.push({t:'Grade', h:'<h2 class="ap-h">Aulas e professores na semana</h2>'+apGrade});
+  const apServ = blocoServicos(d);
+  if(apServ) L.push({t:'Avulsos', h:'<h2 class="ap-h">Serviços e produtos</h2>'+apServ});
+  const apFolha = blocoFolha(d);
+  if(apFolha) L.push({t:'Folha', h:'<h2 class="ap-h">Folha de aulas do mês</h2>'+apFolha});
+  const apConf = blocoConferencia(d);
+  if(apConf) L.push({t:'Conferência', h:'<h2 class="ap-h">O que o professor declarou</h2>'+apConf});
+  if((d.planos||[]).length) L.push({t:'Planos', h:'<h2 class="ap-h">Mix de planos</h2>'+blocoPlanos(d)});
+
+  L.push({t:'Financeiro', h:'<h2 class="ap-h">Receita e inadimplência</h2>'
+    + '<div class="grid2">'
+    + '<div class="card"><h3>Receita recorrente contratada</h3>'+grafLinha(ate.map(x=>({m:x.mes,v:x.mrr})),'var(--saq)','var(--saq-soft)',v=>'R$ '+nf0.format(v/1000)+'k','Receita recorrente')+'</div>'
+    + '<div class="card"><h3>Ticket médio</h3>'+grafLinha(ate.map(x=>({m:x.mes,v:x.ticket})),'var(--saq)','var(--saq-soft)',v=>'R$ '+nf0.format(v),'Ticket médio')+'</div>'
+    + '</div>'
+    + '<div class="tiles" style="margin-top:14px">'
+    + tile('Receita perdida no mês', RS(d.receitaPerdida),'mute','<span>ticket × cancelamentos</span>')
+    + tile('Permanência média', d.permanencia!=null?nf1.format(d.permanencia)+' <small>meses</small>':'—','mute','<span>implícita no churn atual</span>')
+    + tile('Valor em atraso', RS(d.valorInad), sem(d.inadPct,metas.inadBom,metas.inadLim,'menor'),'<span>'+N(d.inadimplentes)+' alunos</span>')
+    + '</div>'});
+
+  if(ate.length>=3) L.push({t:'Projeção', h:'<h2 class="ap-h">Para onde a empresa vai</h2>'+blocoCenariosResumo(ate)});
+
+  L.push({t:'Pauta', h:'<h2 class="ap-h">O que precisa de decisão</h2>'
+    + (lista.length
+      ? '<div class="ap-pauta">'+lista.map((it,i)=>
+          '<div class="ap-item '+it.grav+'"><span class="ap-n">'+(i+1)+'</span>'
+          + '<div><h3>'+esc(it.titulo)+'</h3><span class="ap-num">'+it.num+'</span>'
+          + '<p>'+esc(it.acao)+'</p></div></div>').join('')+'</div>'
+      : '<div class="empty" style="padding:44px"><h3>Nenhum indicador fora do alvo</h3>'
+        + '<p>Todos os semáforos estão verdes neste mês. A pauta fica livre para o que é estrutural: preço, grade de horários, capacidade e time.</p></div>')});
+
+  return L;
+}
+
+/* resumo dos cenários para o slide (sem os campos editáveis) */
+function blocoCenariosResumo(s){
+  if(s.length<3) return '<div class="empty" style="padding:36px"><h3>Faltam meses para projetar</h3><p>A projeção precisa de pelo menos 3 meses fechados.</p></div>';
+  const p = premissas(s);
+  const padrao = cenariosPadrao(p);
+  const salvos = dados().cenarios || {};
+  const cen = {
+    conservador:{...padrao.conservador, ...(salvos.conservador||{})},
+    realista:{...padrao.realista, ...(salvos.realista||{})},
+    otimista:{...padrao.otimista, ...(salvos.otimista||{})}
+  };
+  const hz = dados().horizonte||12;
+  const proj = {
+    conservador: projetar(s,p,cen.conservador,hz),
+    realista: projetar(s,p,cen.realista,hz),
+    otimista: projetar(s,p,cen.otimista,hz)
+  };
+  const hoje = s[s.length-1];
+  const cards = [['conservador','Conservador','c1'],['realista','Realista','c2'],['otimista','Otimista','c3']].map(([k,nome,cor])=>{
+    const f = proj[k][proj[k].length-1];
+    const dAl = f.alunos-hoje.alunos;
+    const teto = cen[k].churn>0 ? cen[k].ent/(cen[k].churn/100) : null;
+    return '<div class="cen-card" style="border-top-color:var(--'+cor+')">'
+      + '<div class="cen-h"><span class="cen-dot" style="background:var(--'+cor+')"></span><h4>'+nome+'</h4></div>'
+      + '<div class="cen-num"><span class="k">Alunos em '+hz+' meses</span><span class="v">'+N(Math.round(f.alunos))+'</span>'
+      + '<span class="d '+(dAl>=0?'up':'down')+'">'+(dAl>=0?'+':'')+N(Math.round(dAl))+'</span></div>'
+      + '<div class="cen-num"><span class="k">Receita recorrente</span><span class="v">'+RS(f.mrr)+'</span></div>'
+      + (teto!=null?'<div class="cen-num"><span class="k">Teto neste ritmo</span><span class="v">'+N(Math.round(teto))+'</span>'
+        + '<span class="d" style="color:var(--ink-3)">entradas ÷ churn</span></div>':'')
+      + '</div>';
+  }).join('');
+  const teto = tetoAtual();
+  return '<div class="cen-grid">'+cards+'</div>'
+    + '<div class="card" style="margin-top:14px"><h3>Alunos ativos projetados</h3>'
+    + '<p class="note">Tracejadas são os cenários; a linha vermelha é o teto da estrutura.</p>'
+    + grafProjecao(s, proj, 'alunos', v=>nf0.format(v), teto)+'</div>';
+}
+
+function abrirApresentacao(){
+  slides = montarSlides();
+  if(!slides.length){ flag('Sem dados para apresentar','err'); return; }
+  slideAtual = 0;
+  document.getElementById('apres').hidden = false;
+  document.body.style.overflow = 'hidden';
+  desenharSlide();
+  document.addEventListener('keydown', teclasApres);
+}
+function fecharApresentacao(){
+  document.getElementById('apres').hidden = true;
+  document.body.style.overflow = '';
+  document.removeEventListener('keydown', teclasApres);
+}
+function teclasApres(ev){
+  if(ev.key==='Escape'){ fecharApresentacao(); return; }
+  if(ev.key==='ArrowRight'||ev.key===' '||ev.key==='PageDown'){ ev.preventDefault(); irSlide(slideAtual+1); }
+  if(ev.key==='ArrowLeft'||ev.key==='PageUp'){ ev.preventDefault(); irSlide(slideAtual-1); }
+}
+function irSlide(i){
+  slideAtual = Math.max(0, Math.min(slides.length-1, i));
+  desenharSlide();
+}
+function desenharSlide(){
+  const s = slides[slideAtual];
+  document.getElementById('ap-corpo').innerHTML = s.h;
+  document.getElementById('ap-pos').textContent = (slideAtual+1)+' / '+slides.length;
+  document.getElementById('ap-nav').innerHTML = slides.map((x,i)=>
+    '<button class="ap-dot'+(i===slideAtual?' on':'')+'" data-slide="'+i+'" title="'+esc(x.t)+'"><span>'+esc(x.t)+'</span></button>').join('');
+  document.getElementById('ap-prev').disabled = slideAtual===0;
+  document.getElementById('ap-next').disabled = slideAtual===slides.length-1;
+  document.querySelectorAll('#ap-nav .ap-dot').forEach(b=>
+    b.addEventListener('click',()=>irSlide(+b.getAttribute('data-slide'))));
+  const corpo = document.getElementById('ap-corpo');
+  corpo.querySelectorAll('svg').forEach(svg=>{
+    const cur = svg.querySelector('.cursor');
+    svg.querySelectorAll('[data-tip]').forEach(el=>{
+      el.addEventListener('mousemove', ev=>{ mostraTip(el.getAttribute('data-tip'), ev.clientX, ev.clientY);
+        if(cur && el.dataset.cx){ cur.setAttribute('cx',el.dataset.cx); cur.setAttribute('cy',el.dataset.cy); cur.setAttribute('opacity','1'); } });
+      el.addEventListener('mouseleave', ()=>{ escondeTip(); if(cur) cur.setAttribute('opacity','0'); });
+    });
+  });
+  corpo.scrollTop = 0;
+}
+
+/* ============ render principal ============ */
+const app = document.getElementById('app');
+const mesSel = document.getElementById('mesSel');
+
+function render(){
+  const s = serie(), metas = dados().metas || METAS_PADRAO;
+  document.getElementById('demoBar').hidden = !demo;
+
+  if(!s.length){
+    mesSel.innerHTML = '<option>—</option>';
+    app.innerHTML = '<section><div class="empty"><h3>O painel começa com o primeiro mês</h3>'
+      + '<p>Pegue o movimento do mês passado no EVO e lance os números. A partir do segundo mês o painel passa a comparar, calcular churn e projetar quanto precisa entrar.</p>'
+      + '<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">'
+      + '<button class="btn btn-primary" data-acao="lancar">Lançar o primeiro mês</button>'
+      + '<button class="btn" data-acao="demo">Ver com dados de demonstração</button>'
+      + '</div></div></section>';
+    ligarAcoes(); renderForm(); return;
+  }
+
+  if(!mesAtivo || !s.some(d=>d.mes===mesAtivo)) mesAtivo = s[s.length-1].mes;
+  mesSel.innerHTML = [...s].reverse().map(d=>'<option value="'+d.mes+'"'+(d.mes===mesAtivo?' selected':'')+'>'+rotuloLongo(d.mes)+'</option>').join('');
+
+  const idx = s.findIndex(d=>d.mes===mesAtivo);
+  const d = s[idx], ant = idx>0 ? s[idx-1] : null;
+  const ate = s.slice(0, idx+1);
+
+  let h = '';
+
+  if(d.fecha === false){
+    h += '<div class="alerta"><b>A conta de alunos não fecha em '+rotuloLongo(d.mes)+'.</b> '
+      + 'Com '+N(d.inicio)+' no início, '+N(d.novos)+' novos, '+N(d.retornos)+' retornos e '+N(d.cancelamentos)+' cancelamentos, '
+      + 'o fim do mês deveria ser '+N(d.esperado)+' — está lançado '+N(d.alunos)+'. '
+      + 'Confira no EVO antes de usar estes números.'
+      + '<button class="btn btn-sm" data-acao="editar">Corrigir</button></div>';
+  }
+  if(d.historico) h += '<div class="alerta" style="background:var(--surface-2);border-color:var(--rule);color:var(--ink-2)">'
+    + '<b>'+rotuloLongo(d.mes)+' é um mês reconstruído.</b> '
+    + 'Base, entradas e saídas saem dos contratos que o EVO guarda desde 2020, e a conta fecha. '
+    + 'Receita, funil, planos e grade não aparecem porque esses números não existem no histórico — a coleta automática só começou em agosto de 2026.</div>';
+
+  h += '<section><div class="shead"><span class="eyebrow">Placar</span><h2>'+rotuloLongo(d.mes)+'</h2>'
+    + '<button class="btn btn-sm" data-acao="editar" style="margin-left:auto">Editar este mês</button></div>'
+    + '<p class="sub">Os seis números que respondem se o mês foi bom. O semáforo compara com as metas definidas no fim da página.</p>'
+    + blocoPlacar(d, ant, metas) + '</section>';
+
+  /* a composicao da base e sempre a foto de hoje, entao so faz sentido no mes corrente */
+  const hBase = (idx === s.length-1 && !d.historico) ? blocoBase() : '';
+  if(hBase) h += '<section><div class="shead"><span class="eyebrow">Base</span><h2>Composição da base</h2></div>'
+    + '<p class="sub">De onde sai o número de alunos. Cadastro ativo não é aluno: só conta quem tem contrato dentro da validade e cobrança maior que zero.</p>'
+    + hBase + '</section>';
+
+  h += '<section><div class="shead"><span class="eyebrow">Crescimento</span><h2>Movimento de alunos</h2></div>'
+    + '<p class="sub">A conta que precisa fechar todo mês. Se a diferença não for zero, o dado está errado — corrija antes de tirar qualquer conclusão.</p>'
+    + blocoEquacao(d)
+    + '<div class="grid2" style="margin-top:14px">'
+    + '<div class="card"><h3>Entradas contra cancelamentos</h3><p class="note">Barra para cima: novos + retornos. Para baixo: cancelamentos.</p>'
+      + '<div class="legend"><span><i style="background:var(--s1)"></i>Entradas</span><span><i style="background:var(--sneg)"></i>Cancelamentos</span></div>'
+      + grafMovimento(ate) + '</div>'
+    + '<div class="card"><h3>Alunos ativos</h3><p class="note">Base no fim de cada mês.</p>'
+      + grafLinha(ate.map(x=>({m:x.mes, v:x.alunos})), 'var(--s1)', 'var(--s1-soft)', v=>nf0.format(v), 'Alunos ativos por mês') + '</div>'
+    + '</div></section>';
+
+  const hChurn = blocoChurn();
+  if(hChurn) h += '<section><div class="shead"><span class="eyebrow">Retenção</span><h2>Mapeamento de cancelamento</h2></div>'
+    + '<p class="sub">Doze meses de saídas: quem saiu, quando, de qual plano e por quê. Cancelamento não é evento isolado — é o fim de uma série de sinais que o painel mostra antes.</p>'
+    + hChurn + '</section>';
+
+  h += '<section><div class="shead"><span class="eyebrow">Comercial</span><h2>Funil da aula experimental</h2></div>'
+    + '<p class="sub">Quando a matrícula cai, o funil diz onde: menos gente chegando, gente que não aparece, ou experimental que não fecha. São três donos diferentes.</p>'
+    + '<div class="card">' + blocoFunil(d, metas) + '</div>'
+    + '<div style="margin-top:14px">' + blocoMeta(ate, metas) + '</div>'
+    + '</section>';
+
+  h += '<section><div class="shead"><span class="eyebrow">Professores</span><h2>Conversão por professor</h2></div>'
+    + '<p class="sub">Quantas experimentais cada professor deu e quantas viraram matrícula. Diferença grande entre professores é treinável — vale entender o que o de cima faz.</p>'
+    + '<div class="card">'
+      + '<p class="note" style="margin-bottom:12px">Esta contagem inclui só a <b>Aula Experimental</b> e a <b>Aula 1 | Introdutória</b>, que são o primeiro contato. As aulas <b>2</b> e <b>3</b> da introdutória ficam de fora: são metodologia da casa para quem já matriculou, e contá-las inflaria as aulas do professor sem nenhuma matrícula possível do outro lado. Elas continuam sendo pagas — aparecem na folha, como complementares.</p>'
+      + ((d.professoresSemana && d.professoresSemana.length) ? '<div class="fsep">No mês</div>' : '')
+      + grafProfessores(d.professores)
+      + ((d.professoresSemana && d.professoresSemana.length)
+          ? '<div class="fsep" style="margin-top:18px">Na semana</div>' + grafProfessores(d.professoresSemana)
+            + '<p class="note" style="margin-top:10px">A semana mostra ritmo, o mês mostra resultado. A conversão da semana quase sempre parece pior, e isso é esperado: a matrícula costuma sair dias depois da aula, então quem fez experimental nos últimos dias ainda não teve tempo de fechar. Compare semana com semana, não semana com mês.</p>'
+          : '')
+      + '</div>'
+    + blocoVendedores() + '</section>';
+
+  h += '<section><div class="shead"><span class="eyebrow">Planos</span><h2>Mix de planos</h2></div>'
+    + '<p class="sub">Onde a base está concentrada, o que está vendendo agora e de onde a receita realmente vem. Migração entre planos aparece aqui antes de aparecer no ticket médio.</p>'
+    + blocoPlanos(d) + blocoPlanosVendidos() + '</section>';
+
+  const hGrade = blocoGrade();
+  if(hGrade) h += '<section><div class="shead"><span class="eyebrow">Grade</span><h2>Aulas e professores na semana</h2></div>'
+    + '<p class="sub">Quem esteve em quadra, quantas aulas deu e quanta gente apareceu. É a leitura de carga e de distribuição da grade — separada da conversão comercial.</p>'
+    + hGrade + '</section>';
+
+  const hFolha = blocoFolha(d);
+  if(hFolha) h += '<section><div class="shead"><span class="eyebrow">Equipe</span><h2>Folha de aulas do mês</h2></div>'
+    + '<p class="sub">Quantas aulas cada professor deu no mês corrente e quanto isso dá pelo valor por aula. É a conta do acerto — o que a grade registrou, não o que foi combinado.</p>'
+    + hFolha + '</section>';
+
+  const hConf = blocoConferencia(d);
+  if(hConf) h += '<section><div class="shead"><span class="eyebrow">Conferência</span><h2>O que o professor declarou</h2></div>'
+    + '<p class="sub">O relatório que cada professor envia pelo app, ao lado do que a grade do EVO registrou. Quem bate, fecha sozinho. Quem diverge, vira uma linha para conferir antes de pagar.</p>'
+    + hConf + '</section>';
+
+  const hServ = blocoServicos(d);
+  if(hServ) h += '<section><div class="shead"><span class="eyebrow">Avulsos</span><h2>Serviços e produtos</h2></div>'
+    + '<p class="sub">Tudo que a base compra fora do plano. É receita que não aparece no MRR e por isso costuma passar despercebida.</p>'
+    + hServ + '</section>';
+
+  const hCaixa = blocoCaixa();
+  if(hCaixa) h += '<section><div class="shead"><span class="eyebrow">Caixa</span><h2>Movimentação financeira do mês</h2></div>'
+    + '<p class="sub">Tudo que a EVO registrou como venda no mês, separado entre plano e o resto. O recorrente contratado é outra conta: é o que a base deve pagar, não o que passou pelo caixa.</p>'
+    + hCaixa + '</section>';
+
+  h += '<section><div class="shead"><span class="eyebrow">Financeiro</span><h2>Receita e inadimplência</h2></div>'
+    + '<p class="sub">Crescer em aluno sem crescer em receita é sinal de mix de plano caindo. Por isso ticket médio anda junto com número de alunos.</p>'
+    + '<div class="grid2">'
+    + '<div class="card"><h3>Receita recorrente contratada</h3><p class="note">Soma dos contratos ativos no mês.</p>'
+      + grafLinha(ate.map(x=>({m:x.mes, v:x.mrr})), 'var(--saq)', 'var(--saq-soft)', v=>'R$ '+nf0.format(v/1000)+'k', 'Receita recorrente por mês') + '</div>'
+    + '<div class="card"><h3>Ticket médio</h3><p class="note">Receita recorrente dividida pelos alunos ativos.</p>'
+      + grafLinha(ate.map(x=>({m:x.mes, v:x.ticket})), 'var(--saq)', 'var(--saq-soft)', v=>'R$ '+nf0.format(v), 'Ticket médio por mês') + '</div>'
+    + '</div>'
+    + '<div class="tiles" style="margin-top:14px">'
+    + tile('Receita perdida no mês', RS(d.receitaPerdida), 'mute', '<span>ticket × cancelamentos</span>')
+    + tile('Permanência média', d.permanencia!=null ? nf1.format(d.permanencia)+' <small>meses</small>' : '—', 'mute', '<span>implícita no churn atual</span>')
+    + tile('Contratos por aluno', d.contratosAluno!=null ? nf2.format(d.contratosAluno) : '—', 'mute', '<span>'+N(d.contratos)+' contratos ativos</span>')
+    + tile('Valor em atraso', RS(d.valorInad), sem(d.inadPct,metas.inadBom,metas.inadLim,'menor'), '<span>'+N(d.inadimplentes)+' alunos inadimplentes</span>')
+    + '</div></section>';
+
+  h += '<section><div class="shead"><span class="eyebrow">Projeção</span><h2>Para onde a empresa vai</h2></div>'
+    + '<p class="sub">Três cenários construídos a partir do seu próprio histórico — a faixa entre eles é a variação que a academia já teve, não uma margem arbitrária. Ajuste qualquer premissa e o painel recalcula.</p>'
+    + blocoCenarios(s) + '</section>';
+
+  h += '<section><div class="shead"><span class="eyebrow">Histórico</span><h2>Todos os meses</h2>'
+    + '<button class="btn btn-sm" data-acao="csv" style="margin-left:auto">Baixar CSV</button></div>'
+    + '<p class="sub">Vermelho é indicador fora do alvo. A última coluna é o teste de consistência do movimento de alunos. Os meses marcados <b>rec.</b> são reconstruídos a partir dos contratos da EVO — têm base, entradas e saídas, mas não têm funil nem receita, porque esses números não existem no histórico.</p>'
+    + blocoTabela(s, metas) + '</section>';
+
+  app.innerHTML = h;
+  ligarAcoes(); ligarTips(); renderForm();
+}
+
+function ligarTips(){
+  app.querySelectorAll('svg').forEach(svg=>{
+    const cur = svg.querySelector('.cursor');
+    svg.querySelectorAll('[data-tip]').forEach(el=>{
+      el.addEventListener('mousemove', ev=>{
+        mostraTip(el.getAttribute('data-tip'), ev.clientX, ev.clientY);
+        if(cur && el.dataset.cx){ cur.setAttribute('cx', el.dataset.cx); cur.setAttribute('cy', el.dataset.cy); cur.setAttribute('opacity','1'); }
+      });
+      el.addEventListener('mouseleave', ()=>{ escondeTip(); if(cur) cur.setAttribute('opacity','0'); });
+    });
+  });
+}
+
+/* ============ formulário ============ */
+const formZone = document.getElementById('formZone');
+const ROTULOS = {
+  alunosInicio:['Alunos no início do mês','deixe vazio para usar o fechamento do mês anterior'],
+  alunos:['Alunos ativos no fim do mês',''],
+  contratos:['Contratos ativos',''],
+  novos:['Alunos novos','primeira matrícula na academia'],
+  retornos:['Retornos','ex-alunos que voltaram'],
+  cancelamentos:['Cancelamentos',''],
+  inadimplentes:['Alunos inadimplentes','quantidade de pessoas'],
+  valorInad:['Valor em atraso (R$)',''],
+  mrr:['Receita recorrente contratada (R$)','soma das mensalidades ativas'],
+  leads:['Contatos / leads recebidos','WhatsApp, Instagram, indicação, portaria'],
+  agendadas:['Experimentais agendadas',''],
+  realizadas:['Experimentais realizadas','a pessoa compareceu'],
+  matriculas:['Matrículas fechadas','vindas das experimentais'],
+  invMkt:['Investimento em marketing (R$)','opcional — habilita o custo por matrícula']
+};
+const GRUPOS = [
+  ['Base de alunos', ['alunosInicio','alunos','contratos']],
+  ['Movimento do mês', ['novos','retornos','cancelamentos']],
+  ['Financeiro', ['mrr','inadimplentes','valorInad','invMkt']],
+  ['Funil comercial', ['leads','agendadas','realizadas','matriculas']]
+];
+
+function renderForm(){
+  if(!editando){ formZone.innerHTML = ''; return; }
+  const reg = dados().meses.find(m=>m.mes===editando) || {mes:editando, professores:[{nome:'',realizadas:'',fechadas:''}]};
+  const metas = dados().metas || METAS_PADRAO;
+  let h = '<section><div class="shead"><span class="eyebrow">Lançamento</span><h2>Números de '+rotuloLongo(editando)+'</h2></div>'
+    + '<p class="sub">Tudo que precisa vir do EVO uma vez por mês. Campo em branco entra como zero.</p><div class="form">'
+    + '<div class="fgrid">'
+    + '<div class="fld"><label for="f-mes">Mês de referência</label><input type="month" id="f-mes" value="'+editando+'"></div>'
+    + '<div style="grid-column:1/-1"></div>';
+  GRUPOS.forEach(([titulo, campos])=>{
+    h += '<div class="fsep">'+titulo+'</div>';
+    campos.forEach(c=>{
+      const [lab,hint] = ROTULOS[c];
+      const v = reg[c]!=null ? reg[c] : '';
+      h += '<div class="fld"><label for="f-'+c+'">'+lab+'</label>'
+        + '<input type="number" min="0" step="any" inputmode="decimal" id="f-'+c+'" value="'+esc(v)+'">'
+        + (hint?'<span class="hint">'+hint+'</span>':'') + '</div>';
+    });
+  });
+  h += '</div><div class="fsep">Planos</div>'
+    + '<p class="note" style="margin:-4px 0 12px">Um por linha. A soma das receitas deve bater com a receita recorrente lançada acima — o painel avisa se não bater.</p>'
+    + '<div id="planos">';
+  const pls = (reg.planos && reg.planos.length) ? reg.planos : [{nome:'',alunos:'',vendas:'',receita:''}];
+  pls.forEach((x,i)=> h += linhaPlano(x,i));
+  h += '</div><button class="btn btn-sm" data-acao="addplano" style="margin-top:4px">+ Adicionar plano</button>';
+  h += '<div class="fsep">Conversão por professor</div><div id="profs">';
+  const profs = (reg.professores && reg.professores.length) ? reg.professores : [{nome:'',realizadas:'',fechadas:''}];
+  profs.forEach((p,i)=> h += linhaProf(p,i));
+  h += '</div><button class="btn btn-sm" data-acao="addprof" style="margin-top:4px">+ Adicionar professor</button>'
+    + '<div id="aviso"></div>'
+    + '<div class="actions">'
+    + '<button class="btn btn-primary" data-acao="salvar">Salvar mês</button>'
+    + '<button class="btn" data-acao="cancelar">Cancelar</button>'
+    + (dados().meses.some(m=>m.mes===editando) ? '<button class="btn" data-acao="apagar" style="margin-left:auto">Apagar este mês</button>' : '')
+    + '</div>'
+    + '<details class="meta-d"><summary>Metas e faixas do semáforo</summary><div class="fgrid" style="margin-top:14px">'
+    + metaCampo('churnBom','Churn no alvo até (%)',metas.churnBom) + metaCampo('churnLim','Churn crítico acima de (%)',metas.churnLim)
+    + metaCampo('crescBom','Crescimento líquido no alvo a partir de (%)',metas.crescBom) + metaCampo('crescLim','Crescimento crítico abaixo de (%)',metas.crescLim)
+    + metaCampo('noShowBom','No-show no alvo até (%)',metas.noShowBom) + metaCampo('noShowLim','No-show crítico acima de (%)',metas.noShowLim)
+    + metaCampo('convBom','Conversão no alvo a partir de (%)',metas.convBom) + metaCampo('convLim','Conversão crítica abaixo de (%)',metas.convLim)
+    + metaCampo('inadBom','Inadimplência no alvo até (%)',metas.inadBom) + metaCampo('inadLim','Inadimplência crítica acima de (%)',metas.inadLim)
+    + metaCampo('ticketMeta','Ticket médio alvo (R$) — 0 desliga',metas.ticketMeta)
+    + '</div></details>'
+    + '<details class="meta-d"><summary>Backup dos dados</summary><div class="actions">'
+    + '<button class="btn btn-sm" data-acao="exportar">Baixar backup (JSON)</button>'
+    + '<label class="btn btn-sm" style="display:inline-block">Restaurar backup<input type="file" id="importar" accept="application/json" hidden></label>'
+    + '</div></details>'
+    + '</div></section>';
+  formZone.innerHTML = h;
+  ligarAcoes();
+  formZone.querySelector('#importar')?.addEventListener('change', importarArquivo);
+}
+function metaCampo(k,lab,v){
+  return '<div class="fld"><label for="m-'+k+'">'+lab+'</label><input type="number" step="any" id="m-'+k+'" value="'+esc(v!=null?v:'')+'"></div>';
+}
+function linhaPlano(p,i){
+  return '<div class="plano-row" data-i="'+i+'">'
+    + '<div class="fld"><label>Plano</label><input type="text" class="pl-nome" value="'+esc(p.nome||'')+'" placeholder="Ex.: Mensal, Trimestral, Kids"></div>'
+    + '<div class="fld"><label>Alunos</label><input type="number" min="0" class="pl-alunos" value="'+esc(p.alunos!=null?p.alunos:'')+'"></div>'
+    + '<div class="fld"><label>Vendas no mês</label><input type="number" min="0" class="pl-vendas" value="'+esc(p.vendas!=null?p.vendas:'')+'"></div>'
+    + '<div class="fld"><label>Receita (R$)</label><input type="number" min="0" step="any" class="pl-receita" value="'+esc(p.receita!=null?p.receita:'')+'"></div>'
+    + '<button class="icon-btn" data-acao="delplano" title="Remover plano" aria-label="Remover plano">×</button>'
+    + '</div>';
+}
+function linhaProf(p,i){
+  return '<div class="prof-row" data-i="'+i+'">'
+    + '<div class="fld"><label>Professor</label><input type="text" class="p-nome" value="'+esc(p.nome||'')+'" placeholder="Nome"></div>'
+    + '<div class="fld"><label>Experimentais</label><input type="number" min="0" class="p-real" value="'+esc(p.realizadas!=null?p.realizadas:'')+'"></div>'
+    + '<div class="fld"><label>Fechadas</label><input type="number" min="0" class="p-fech" value="'+esc(p.fechadas!=null?p.fechadas:'')+'"></div>'
+    + '<button class="icon-btn" data-acao="delprof" title="Remover professor" aria-label="Remover professor">×</button>'
+    + '</div>';
+}
+
+/* ============ ações ============ */
+function ligarAcoes(){
+  document.querySelectorAll('[data-acao]').forEach(el=>{
+    if(el.dataset.ligado) return; el.dataset.ligado='1';
+    el.addEventListener('click', ev=>{
+      const a = el.getAttribute('data-acao');
+      if(a==='lancar') abrirLancamento();
+      if(a==='demo') entrarDemo();
+      if(a==='csv') baixarCSV();
+      if(a==='addprof'){ const c=document.getElementById('profs'); c.insertAdjacentHTML('beforeend', linhaProf({},c.children.length)); ligarAcoes(); }
+      if(a==='delprof'){ ev.preventDefault(); const c=document.getElementById('profs'); if(c.children.length>1) el.closest('.prof-row').remove(); }
+      if(a==='addplano'){ const c=document.getElementById('planos'); c.insertAdjacentHTML('beforeend', linhaPlano({},c.children.length)); ligarAcoes(); }
+      if(a==='delplano'){ ev.preventDefault(); const c=document.getElementById('planos'); if(c.children.length>1) el.closest('.plano-row').remove(); }
+      if(a==='salvar') salvarMes();
+      if(a==='cancelar'){ editando=null; renderForm(); }
+      if(a==='apagar') apagarMes();
+      if(a==='exportar') exportarJSON();
+      if(a==='editar') abrirLancamento(mesAtivo);
+      if(a==='salvarcen') salvarCenarios();
+      if(a==='resetcen') resetarCenarios();
+      if(a==='editteto') editarTeto();
+      if(a==='editvaloraula') editarValorAula();
+    });
+  });
+}
+
+function proximoMes(){
+  const ms = dados().meses.map(m=>m.mes).sort();
+  if(!ms.length){ const h=new Date(); h.setMonth(h.getMonth()-1); return h.toISOString().slice(0,7); }
+  const [a,b] = ms[ms.length-1].split('-').map(Number);
+  const d = new Date(a, b, 1);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+}
+function abrirLancamento(mes){
+  if(demo){ alert('Saia da demonstração antes de lançar dados reais.'); return; }
+  editando = mes || proximoMes();
+  renderForm();
+  formZone.scrollIntoView({behavior:'smooth', block:'start'});
+}
+function num(id){ const el=document.getElementById(id); if(!el) return null; const v=el.value.trim(); if(v==='') return null; const n=parseFloat(v.replace(',','.')); return isFinite(n)?n:null; }
+
+function salvarMes(){
+  const mes = document.getElementById('f-mes').value;
+  if(!/^\d{4}-\d{2}$/.test(mes)){ aviso('Escolha um mês de referência válido.','warn'); return; }
+  const reg = {mes, professores:[], planos:[]};
+  CAMPOS.forEach(c=>{ const v = num('f-'+c); reg[c] = (c==='alunosInicio') ? v : (v==null?0:v); });
+  document.querySelectorAll('#planos .plano-row').forEach(r=>{
+    const nome = r.querySelector('.pl-nome').value.trim();
+    if(!nome) return;
+    reg.planos.push({
+      nome,
+      alunos: parseFloat(r.querySelector('.pl-alunos').value)||0,
+      vendas: parseFloat(r.querySelector('.pl-vendas').value)||0,
+      receita: parseFloat(r.querySelector('.pl-receita').value)||0
+    });
+  });
+  document.querySelectorAll('#profs .prof-row').forEach(r=>{
+    const nome = r.querySelector('.p-nome').value.trim();
+    const real = parseFloat(r.querySelector('.p-real').value)||0;
+    const fech = parseFloat(r.querySelector('.p-fech').value)||0;
+    if(nome) reg.professores.push({nome, realizadas:real, fechadas:fech});
+  });
+  const metas = {...(state.metas||METAS_PADRAO)};
+  Object.keys(METAS_PADRAO).forEach(k=>{ const v = num('m-'+k); if(v!=null) metas[k]=v; });
+  state.metas = metas;
+
+  const i = state.meses.findIndex(m=>m.mes===mes);
+  if(i>=0) state.meses[i] = reg; else state.meses.push(reg);
+  state.meses.sort((a,b)=>a.mes.localeCompare(b.mes));
+
+  const ordenados = [...state.meses].sort((a,b)=>a.mes.localeCompare(b.mes));
+  const pos = ordenados.findIndex(m=>m.mes===mes);
+  const der = derivar(reg, pos>0 ? ordenados[pos-1] : null);
+  mesAtivo = mes; editando = null;
+  render(); persistir();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+function apagarMes(){
+  const mes = editando;
+  state.meses = state.meses.filter(m=>m.mes!==mes);
+  editando = null; mesAtivo = null;
+  render(); persistir();
+}
+function aviso(txt, tipo){
+  const box = document.getElementById('aviso');
+  const html = '<div class="'+(tipo==='ok'?'okbox':'warnbox')+'">'+esc(txt)+'</div>';
+  if(box) box.innerHTML = html;
+  else { flag(txt.slice(0,40), tipo==='ok'?'on':'err'); }
+}
+
+/* ============ persistência ============ */
+const flagEl = document.getElementById('saveflag');
+function flag(txt, cls){ flagEl.textContent = txt; flagEl.className = 'saveflag ' + (cls||''); }
+
+async function persistir(){
+  if(demo) return;
+  try{ localStorage.setItem('painel-sjc', JSON.stringify(state)); }catch(e){}
+  flag('Salvando…');
+  let ns = artefato;
+  if(ns === undefined){
+    try{ ns = await (window.claude && window.claude.use ? window.claude.use('artifact') : null); }catch(e){ ns = null; }
+    artefato = ns;
+  }
+  if(!ns){ flag('Salvo só neste navegador', 'err'); return; }
+  try{
+    await ns.publish({'dados.json': JSON.stringify(state, null, 2)});
+    flag('Salvo para os sócios', 'on');
+  }catch(err){
+    const c = err && err.code;
+    if(c==='conflict'){ flag('Outro sócio salvou antes', 'err'); return; }
+    if(c==='not_writer' || c==='not_granted' || c==='consent_required'){ flag('Você está só visualizando', 'err'); return; }
+    flag('Salvo neste navegador', 'err');
+  }
+}
+
+/* ============ exportar / importar ============ */
+async function baixar(nome, texto, tipo){
+  try{
+    const dl = window.claude && window.claude.use ? await window.claude.use('downloads') : null;
+    if(dl){ await dl.save({filename:nome, data:texto}); return; }
+  }catch(e){
+    if(e && (e.code==='cancelled' || e.code==='denied')) return;
+  }
+  try{
+    const blob = new Blob([texto], {type:tipo});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = nome;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 1500);
+  }catch(e){ flag('Download indisponível aqui', 'err'); }
+}
+function baixarCSV(){
+  const s = serie();
+  const cab = ['mes','alunos_inicio','alunos_fim','contratos','novos','retornos','cancelamentos','crescimento_pct','churn_pct','mrr','ticket_medio','inadimplentes','valor_atraso','inadimplencia_pct','leads','agendadas','realizadas','matriculas','no_show_pct','conversao_exp_pct','cac','fecha'];
+  const linhas = s.map(d=>[d.mes,d.inicio,d.alunos,d.contratos,d.novos,d.retornos,d.cancelamentos,
+    d.crescPct,d.churnPct,d.mrr,d.ticket,d.inadimplentes,d.valorInad,d.inadPct,
+    d.leads,d.agendadas,d.realizadas,d.matriculas,d.noShow,d.convExp,d.cac, d.fecha===null?'':(d.fecha?'sim':'nao')]
+    .map(v=> v==null||v===''||(typeof v==='number'&&!isFinite(v)) ? '' : (typeof v==='number' ? String(Math.round(v*100)/100).replace('.',',') : v)).join(';'));
+  baixar('placar-alliance-sjc.csv', '﻿'+cab.join(';')+'\n'+linhas.join('\n'), 'text/csv;charset=utf-8');
+}
+function exportarJSON(){ baixar('backup-placar-sjc.json', JSON.stringify(state,null,2), 'application/json'); }
+function importarArquivo(ev){
+  const f = ev.target.files && ev.target.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try{
+      const j = JSON.parse(r.result);
+      if(!j || !Array.isArray(j.meses)) throw new Error('formato');
+      state = {versao:1, metas:{...METAS_PADRAO, ...(j.metas||{})}, meses:j.meses,
+        cenarios: j.cenarios||null, horizonte: j.horizonte||12, teto:(j.teto!=null?j.teto:350)};
+      editando = null; mesAtivo = null;
+      render(); persistir();
+    }catch(e){ aviso('Arquivo inválido. Use um backup gerado por este painel.','warn'); }
+  };
+  r.readAsText(f);
+}
+
+/* ============ demonstração ============ */
+function entrarDemo(){
+  const meses = [];
+  let alunos = 214, mrr = 71000;
+  const base = new Date(); base.setDate(1); base.setMonth(base.getMonth()-12);
+  for(let i=0;i<12;i++){
+    const dt = new Date(base.getFullYear(), base.getMonth()+i, 1);
+    const mes = dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0');
+    const inicio = alunos;
+    const cancel = Math.round(inicio*(0.045 + (i>6?0.018:0) + (i%3===0?0.004:0)));
+    const novos = 15 + (i%4) + (i>8?3:0);
+    const retornos = 2 + (i%3===0?2:0);
+    alunos = inicio + novos + retornos - cancel;
+    const realizadas = Math.round((novos+retornos)/0.58);
+    const agendadas = Math.round(realizadas/0.72);
+    const leads = Math.round(agendadas/0.46);
+    mrr = Math.round(alunos*(330 + i*2.2));
+    meses.push({mes, alunosInicio:inicio, alunos, contratos:alunos+Math.round(alunos*0.03),
+      novos, retornos, cancelamentos:cancel,
+      inadimplentes: 8+(i%5), valorInad: Math.round(mrr*(0.028+(i%4)*0.006)), mrr,
+      leads, agendadas, realizadas, matriculas:novos+retornos, invMkt: 2400+i*90,
+      professores:[
+        {nome:'Professor A', realizadas:Math.round(realizadas*0.4), fechadas:Math.round(realizadas*0.4*0.7)},
+        {nome:'Professor B', realizadas:Math.round(realizadas*0.35), fechadas:Math.round(realizadas*0.35*0.55)},
+        {nome:'Professor C', realizadas:Math.round(realizadas*0.25), fechadas:Math.round(realizadas*0.25*0.44)}
+      ],
+      planos: (function(){
+        const mix = [
+          ['Mensal',            0.34, 0.40, 0.30],
+          ['Trimestral',        0.21, 0.22, 0.22],
+          ['Semestral',         0.14, 0.15, 0.14],
+          ['Anual',             0.11, 0.12, 0.09],
+          ['Kids',              0.13, 0.09, 0.11],
+          ['Preço legado',      0.07, 0.02, 0.00]
+        ];
+        return mix.map(([nome, fa, fr, fv])=>({
+          nome,
+          alunos: Math.round(alunos*fa),
+          vendas: Math.round((novos+retornos)*fv),
+          receita: Math.round(mrr*fr)
+        }));
+      })()});
+  }
+  demo = {versao:1, metas:{...METAS_PADRAO}, meses, cenarios:null, horizonte:12, teto:350};
+  mesAtivo = null; editando = null; render();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+document.getElementById('btnSairDemo').addEventListener('click', ()=>{ demo=null; mesAtivo=null; render(); });
+document.getElementById('btnApres').addEventListener('click', abrirApresentacao);
+document.getElementById('ap-fechar').addEventListener('click', fecharApresentacao);
+document.getElementById('ap-prev').addEventListener('click', ()=>irSlide(slideAtual-1));
+document.getElementById('ap-next').addEventListener('click', ()=>irSlide(slideAtual+1));
+
+/* ============ leitura protegida do dados.json ============ */
+const b64d = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+const b64e = b => btoa(String.fromCharCode.apply(null, new Uint8Array(b)));
+const CHAVE_SENHA = 'painel-sjc-senha';
+
+async function derivarChave(senha, salt){
+  const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(senha), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    {name:'PBKDF2', salt, iterations:200000, hash:'SHA-256'},
+    base, {name:'AES-GCM', length:256}, false, ['decrypt','encrypt']);
+}
+async function decifrar(pacote, senha){
+  const k = await derivarChave(senha, b64d(pacote.salt));
+  const plano = await crypto.subtle.decrypt({name:'AES-GCM', iv:b64d(pacote.iv)}, k, b64d(pacote.dados));
+  return JSON.parse(new TextDecoder().decode(plano));
+}
+
+function pedirSenha(errou){
+  return new Promise(resolve=>{
+    const ov = document.createElement('div');
+    ov.className = 'senha-ov';
+    ov.innerHTML =
+      '<form class="senha-cx">'
+      + '<div class="senha-marca"></div>'
+      + '<h2>Placar da Alliance SJC</h2>'
+      + '<p>Os números deste painel são guardados criptografados. Digite a senha para abrir.</p>'
+      + (errou ? '<div class="senha-err">Senha incorreta. Tente de novo.</div>' : '')
+      + '<input type="password" id="senha-in" placeholder="Senha do painel" autocomplete="current-password" required>'
+      + '<button type="submit" class="btn btn-primary">Abrir painel</button>'
+      + '<span class="senha-nota">A senha fica guardada neste navegador — você só digita uma vez por aparelho.</span>'
+      + '</form>';
+    document.body.appendChild(ov);
+    const inp = ov.querySelector('#senha-in');
+    setTimeout(()=>inp.focus(), 60);
+    ov.querySelector('form').addEventListener('submit', ev=>{
+      ev.preventDefault();
+      const v = inp.value;
+      if(!v) return;
+      ov.remove();
+      resolve(v);
+    });
+  });
+}
+
+async function carregarDados(){
+  let bruto = null;
+  try{
+    const r = await fetch('dados.json?v=' + Date.now(), {cache:'no-store'});
+    if(r.ok) bruto = await r.json();
+  }catch(e){}
+  if(!bruto) return null;
+  if(!bruto.cifrado) return bruto;
+
+  if(!(window.crypto && crypto.subtle)){
+    console.warn('WebCrypto indisponível — o painel precisa ser servido por https.');
+    return null;
+  }
+  let guardada = null;
+  try{ guardada = localStorage.getItem(CHAVE_SENHA); }catch(e){}
+  let senha = guardada, errou = false;
+  for(let i=0; i<6; i++){
+    if(!senha) senha = await pedirSenha(errou);
+    try{
+      const claro = await decifrar(bruto, senha);
+      try{ localStorage.setItem(CHAVE_SENHA, senha); }catch(e){}
+      return claro;
+    }catch(e){
+      try{ localStorage.removeItem(CHAVE_SENHA); }catch(e2){}
+      senha = null; errou = true;
+    }
+  }
+  return null;
+}
+function esquecerSenha(){
+  try{ localStorage.removeItem(CHAVE_SENHA); }catch(e){}
+  location.reload();
+}
+
+/* ============ boot ============ */
+mesSel.addEventListener('change', ()=>{ mesAtivo = mesSel.value; render(); });
+document.getElementById('btnLancar').addEventListener('click', ()=> abrirLancamento(mesAtivo && !dados().meses.length ? null : undefined));
+
+function mostraCarimbo(iso){
+  if(!iso) return;
+  const el = document.getElementById('stamp');
+  if(!el) return;
+  let txt;
+  try{
+    const d = new Date(iso);
+    txt = d.toLocaleString('pt-BR',{weekday:'short', day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'});
+  }catch(e){ txt = iso; }
+  el.innerHTML = '<span class="pulse"></span>Atualizado ' + txt;
+  el.title = 'Clique para esquecer a senha neste navegador';
+  el.hidden = false;
+  el.style.cursor = 'pointer';
+  el.addEventListener('click', esquecerSenha);
+}
+
+(async function boot(){
+  let carregado = await carregarDados();
+  if(carregado && carregado.atualizadoEm) mostraCarimbo(carregado.atualizadoEm);
+  if(!carregado){
+    try{ const ls = localStorage.getItem('painel-sjc'); if(ls) carregado = JSON.parse(ls); }catch(e){}
+  }
+  if(carregado && Array.isArray(carregado.meses)){
+    state = {versao:1, atualizadoEm: carregado.atualizadoEm||null, metas:{...METAS_PADRAO, ...(carregado.metas||{})}, meses:carregado.meses,
+      cenarios: carregado.cenarios||null, horizonte: carregado.horizonte||12,
+      teto: (carregado.teto!=null?carregado.teto:350)};
+  }
+  render();
+  try{
+    artefato = await (window.claude && window.claude.use ? window.claude.use('artifact') : null);
+  }catch(e){ artefato = null; }
+})();
+
+})();
+</script>
+
+</body>
+</html>
