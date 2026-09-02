@@ -357,6 +357,12 @@ svg{display:block; width:100%; overflow:visible}
 }
 
 /* ---------- table ---------- */
+/* Celulas de conferencia: ambar quando o declarado nao bate com o apurado,
+   cinza quando o professor ainda nao enviou. Nunca vermelho — a divergencia
+   e guia de processo, nao trava pagamento. */
+.warn-cell{color:var(--w-ink,#8a6300);background:var(--w-bg,rgba(181,122,6,.10));font-weight:600}
+.ok-cell{color:var(--o-ink,#0f7a4e);font-weight:600}
+.vazio-cell{color:var(--muted);font-style:italic}
 .tbl-wrap{overflow-x:auto; border:1px solid var(--rule); border-radius:13px; background:var(--surface)}
 .tbl-wrap td.wrap,.tbl-wrap th.wrap{white-space:normal; text-align:left; min-width:200px; max-width:340px}
 table{border-collapse:collapse; width:100%; font-size:13px; font-variant-numeric:tabular-nums}
@@ -798,28 +804,48 @@ function blocoEquacao(d){
 }
 
 function blocoFunil(d, metas){
+  /* O funil conta PESSOA em toda a régua. Antes ele misturava sessão com
+     pessoa: quem faz duas experimentais aparecia duas vezes no meio e uma só
+     no fim, e a taxa saía menor do que a realidade. As sessões continuam
+     visíveis logo abaixo, como número de operação. */
+  const fdx = ((dados()||{}).detalhe||{}).funil_diagnostico || {};
+  const pessoasExp = (fdx.no_mes && fdx.no_mes.pessoas!=null) ? +fdx.no_mes.pessoas : (+d.realizadas||0);
   const etapas = [
     {k:'Contatos / leads', v:d.leads, c:'var(--f1)', t:'#0b2545'},
-    {k:'Experimentais agendadas', v:d.agendadas, c:'var(--f2)', t:'#0b2545'},
-    {k:'Experimentais realizadas', v:d.realizadas, c:'var(--f3)', t:'#ffffff'},
+    {k:'Pessoas que fizeram a experimental', v:pessoasExp, c:'var(--f3)', t:'#ffffff'},
     {k:'Matrículas vindas da experimental', v:d.matriculasFunil, c:'var(--f4)', t:'#ffffff'}
   ];
   const max = Math.max(1, ...etapas.map(e=>+e.v||0));
+  const pct = (a,b)=> (b>0 ? a/b*100 : null);
   const taxas = [
-    {t:'agendaram', v:d.convLead},
-    {t:'compareceram', v:d.compPct},
-    {t:'fecharam', v:d.convExp}
+    {t:'chegaram ao tatame', v:pct(pessoasExp, +d.leads||0)},
+    {t:'fecharam', v:pct(+d.matriculasFunil||0, pessoasExp)}
   ];
   let html = '<div class="funnel">';
   etapas.forEach((e,i)=>{
     const w = Math.max(3, (+e.v||0)/max*100);
     html += '<div class="fstage"><div class="fl">'+e.k+'</div>'
       + '<div class="fbar" style="width:'+w+'%;background:'+e.c+';color:'+e.t+'">'+N(e.v)+'</div></div>';
-    if(i<3) html += '<div class="fgap"><div></div><div class="fr">↓ <b>'+P(taxas[i].v)+'</b> '+taxas[i].t+'</div></div>';
+    if(i<etapas.length-1) html += '<div class="fgap"><div></div><div class="fr">↓ <b>'+P(taxas[i].v)+'</b> '+taxas[i].t+'</div></div>';
   });
   html += '</div>';
 
   const fd = ((dados()||{}).detalhe||{}).funil_diagnostico;
+
+  if(fd && fd.no_mes){
+    const sess = +fd.no_mes.agendadas||0, real = +fd.no_mes.realizadas||0, pes = +fd.no_mes.pessoas||0;
+    if(sess !== pes) html += '<p class="note" style="margin-top:12px">Na régua acima cada pessoa conta uma vez. '
+      + 'Na agenda do EVO foram <b>'+N(sess)+' sessões</b> marcadas e <b>'+N(real)+'</b> realizadas para <b>'+N(pes)+' pessoas</b> — '
+      + 'a diferença é gente que fez mais de uma aula antes de decidir. A taxa de conversão usa pessoa; a operação da grade usa sessão.</p>';
+  }
+
+  if(fd && fd.fila_truncada){
+    html += '<div class="alerta" style="margin-top:16px"><b>O funil deste período está incompleto.</b> '
+      + 'A coleta precisava consultar a agenda de '+N(fd.fila_planejada)+' pessoas e só coube '+N(fd.pessoas_consultadas)+' no tempo de execução — '
+      + N(fd.pessoas_que_ficaram_de_fora)+' ficaram de fora. As experimentais dessas pessoas não estão contadas aqui, '
+      + 'então os números abaixo são um piso, não o total.</div>';
+  }
+
   if(fd && fd.sem_registro_de_experimental){
     html += '<div class="alerta" style="margin-top:16px"><b>Nenhuma aula introdutória foi encontrada no período.</b> '
       + 'Foram consultadas '+N(fd.pessoas_consultadas)+' pessoas, entre leads e alunos recentes, e nenhuma tinha sessão marcada na agenda. '
@@ -912,7 +938,10 @@ function planosDoMes(d){
     nome: p.nome,
     alunos: +p.alunos||0,
     vendas: +p.vendas||0,
-    receita: +p.receita||0
+    receita: +p.receita||0,
+    /* Contratos vigentes que a EVO deixou sem valor de venda. Não tiram
+       ninguém da base, mas puxam a receita do plano para baixo. */
+    sem_valor: +p.sem_valor||0
   }));
 }
 /* agrupa acima de 8 planos para não estourar a paleta */
@@ -1165,9 +1194,39 @@ function blocoCaixa(){
     + tile('Serviços e produtos', RS(cx.servicos_e_produtos), 'mute', '<span>'+P(cx.pct_fora_do_recorrente)+' do movimento</span>')
     + tile('Recorrente contratado', RS(cx.recorrente_contratado), 'mute', '<span>base de cobrança do mês</span>')
     + '</div>';
+  /* Rosca da receita inteira: os planos, somados por família, mais uma fatia
+     só com serviços e produtos. A rosca antiga mostrava apenas o pedaço de
+     fora do plano, que é 1% do movimento — dava a impressão de ser o todo. */
+  const mesAtual = (state.meses||[])[ (state.meses||[]).length-1 ] || {};
+  const psTudo = ((mesAtual.planos)||[]).filter(x=>x && x.nome && (+x.receita||0)>0)
+    .map(x=>({nome:x.nome, valor:+x.receita||0}))
+    .sort((a,b)=>b.valor-a.valor);
+  const servProd = (+cx.servicos_e_produtos||0);
+  if(psTudo.length){
+    /* A paleta categórica tem 7 cores. Com mais de 7 fatias ela repete, e a
+       fatia de serviços e produtos — que é a que interessa destacar — saía na
+       mesma cor do maior plano. Cinco planos + demais + serviços fecham em 7. */
+    const topo = psTudo.slice(0,5);
+    const resto = psTudo.slice(5).reduce((t,x)=>t+x.valor,0);
+    const fatias = topo.slice();
+    if(resto>0) fatias.push({nome:'Demais planos', valor:resto});
+    if(servProd>0) fatias.push({nome:'Serviços e produtos', valor:servProd});
+    const totTudo = fatias.reduce((t,x)=>t+x.valor,0);
+    h += '<div class="card" style="margin-top:14px"><h3>De onde vem a receita</h3>'
+      + '<p class="note">Tudo que a escola faturou no mês numa figura só: cada plano com peso próprio e uma fatia única para serviços e produtos — exame de faixa, aluguel de kimono e afins. Serve para ver o tamanho real de cada fonte antes de decidir onde mexer.</p>'
+      + grafPizza(fatias, 'receita do mês')
+      + '<div class="tbl-wrap" style="margin-top:12px"><table><thead><tr><th>Fonte</th><th>Receita</th><th>Peso</th></tr></thead><tbody>'
+      + fatias.map(x=>'<tr><td>'+esc(x.nome)+'</td><td>'+RS(x.valor)+'</td><td>'+P(totTudo?x.valor/totTudo*100:0)+'</td></tr>').join('')
+      + '<tr style="font-weight:700;background:var(--surface-2)"><td>Total</td><td>'+RS(totTudo)+'</td><td>100,0%</td></tr>'
+      + '</tbody></table></div>'
+      + '<p class="note">Serviços e produtos somam '+RS(servProd)+', ou '+P(totTudo?servProd/totTudo*100:0)+' do total. '
+      + 'É pouco em proporção, mas é caixa que não depende de mensalidade — e é a única linha que a escola consegue mexer sem mexer em plano.</p>'
+      + '</div>';
+  }
+
   if(cats.length){
     const tot = cats.reduce((s,c)=>s+(c.receita||0),0);
-    h += '<div class="card" style="margin-top:14px"><h3>De onde vem o dinheiro fora do plano</h3>'
+    h += '<div class="card" style="margin-top:14px"><h3>Dentro dos serviços e produtos</h3>'
       + '<p class="note">Categorias separadas por tipo de item na venda. Aluguel de kimono, aula avulsa, personal e exame de faixa entram aqui — é caixa que não aparece no MRR e por isso costuma passar despercebido.</p>'
       + grafPizza(cats.map(c=>({nome:c.categoria, valor:c.receita})), 'fora do plano')
       + '<p class="note">A rosca mostra a proporção dentro deste bolo, que é '+P(cx.pct_fora_do_recorrente)+' do movimento do mês. O personal recorrente fica fora dela porque a EVO o registra como plano, não como serviço avulso.</p>'
@@ -1296,7 +1355,20 @@ function blocoFolha(d){
   const av = det.avulsos_do_mes || {};
   if(!f.length) return '';
   const vAula = valorAula();
-  const linhas = f.map(p=>({...p, complementares: p.complementares||0, valor: p.aulas*vAula}));
+  /* Declaracao do professor, cruzada com o apurado da grade. A EVO nao sabe
+     quem aplicou exame nem quem deu particular; o relatorio mensal preenche
+     esse buraco. A diferenca e guia de processo — nao trava pagamento. */
+  const decl = ((dados()||{}).declaracoes || []).filter(x => x && x.periodo === d.mes);
+  const declPorProf = {};
+  decl.forEach(x => { declPorProf[String(x.professor||'').trim().toUpperCase()] = x; });
+  const linhas = f.map(p=>{
+    const dx = declPorProf[String(p.professor||'').trim().toUpperCase()] || null;
+    const declarado = dx ? (+dx.aulasDeclaradas||0) : null;
+    return {...p, complementares: p.complementares||0, valor: p.aulas*vAula,
+      declarado: declarado, dif: (declarado==null? null : declarado - p.aulas), dec: dx};
+  });
+  const enviaramFolha = linhas.filter(l=>l.declarado!=null);
+  const divergemFolha = enviaramFolha.filter(l=>l.dif!==0);
   const totAulas = linhas.reduce((s,p)=>s+p.aulas,0);
   const totIntro = linhas.reduce((s,p)=>s+p.introdutorias,0);
   const totComp  = linhas.reduce((s,p)=>s+p.complementares,0);
@@ -1313,13 +1385,29 @@ function blocoFolha(d){
 
   h += '<div class="card" style="margin-top:14px"><h3>Fechamento por professor</h3>'
     + '<p class="note">Cada linha é a contagem de sessões que a grade do EVO registra no mês, com o professor atribuído. Introdutória é a aula de primeiro contato; complementar é a aula 2 e a aula 3 da metodologia, dadas para quem já matriculou. As duas se pagam pelo mesmo valor — a diferença é que só a primeira conta como funil. Confira contra a escala antes de pagar: o painel conta o que está lançado, não o que foi combinado.</p>'
-    + '<div class="tbl-wrap"><table><thead><tr><th>Professor</th><th>Coletivas</th><th>Introdutórias</th><th>Complementares</th><th>Total de aulas</th><th>Presenças</th><th>A pagar</th></tr></thead><tbody>'
-    + linhas.map(p=>'<tr><td>'+esc(p.professor)+'</td><td>'+N(p.coletivas)+'</td><td>'+N(p.introdutorias)+'</td><td>'+N(p.complementares)+'</td>'
-        + '<td>'+N(p.aulas)+'</td><td>'+N(p.presencas)+'</td><td><b>'+RS2(p.valor)+'</b></td></tr>').join('')
+    + '<div class="tbl-wrap"><table><thead><tr><th>Professor</th><th>Coletivas</th><th>Introdutórias</th><th>Complementares</th><th>Apurado</th><th>Declarado</th><th>Diferença</th><th>Presenças</th><th>A pagar</th></tr></thead><tbody>'
+    + linhas.map(p=>{
+        const semEnvio = p.declarado==null;
+        const cls = semEnvio ? 'vazio-cell' : (p.dif===0 ? 'ok-cell' : 'warn-cell');
+        return '<tr><td>'+esc(p.professor)+'</td><td>'+N(p.coletivas)+'</td><td>'+N(p.introdutorias)+'</td><td>'+N(p.complementares)+'</td>'
+        + '<td>'+N(p.aulas)+'</td>'
+        + '<td class="'+cls+'">'+(semEnvio?'não enviou':N(p.declarado))+'</td>'
+        + '<td class="'+cls+'">'+(semEnvio?'—':(p.dif===0?'confere':(p.dif>0?'+':'')+N(p.dif)))+'</td>'
+        + '<td>'+N(p.presencas)+'</td><td><b>'+RS2(p.valor)+'</b></td></tr>';
+      }).join('')
     + '<tr style="font-weight:700;background:var(--surface-2)"><td>Total</td>'
     + '<td>'+N(linhas.reduce((s,p)=>s+p.coletivas,0))+'</td><td>'+N(totIntro)+'</td><td>'+N(totComp)+'</td><td>'+N(totAulas)+'</td>'
+    + '<td>'+N(enviaramFolha.reduce((s,p)=>s+(p.declarado||0),0))+'</td>'
+    + '<td>'+N(enviaramFolha.reduce((s,p)=>s+(p.dif||0),0))+'</td>'
     + '<td>'+N(linhas.reduce((s,p)=>s+p.presencas,0))+'</td><td>'+RS2(totValor)+'</td></tr>'
-    + '</tbody></table></div></div>';
+    + '</tbody></table></div>'
+    + (decl.length
+        ? '<p class="note" style="margin-top:10px"><b>Apurado</b> é o que a grade do EVO registrou; <b>declarado</b> é o que o professor informou no relatório mensal. '
+          + N(enviaramFolha.length)+' de '+N(linhas.filter(l=>l.aulas>0).length)+' enviaram, e '+N(divergemFolha.length)
+          + (divergemFolha.length===1?' diverge':' divergem')+'. A divergência é guia de processo, não trava o acerto: '
+          + 'a diferença quase sempre é aula dada sem lançamento na grade, ou lançada no nome errado. Vale olhar o padrão ao longo dos meses, não o caso isolado.</p>'
+        : '<p class="note" style="margin-top:10px">Nenhum relatório de professor recebido para este mês ainda. Quando chegarem, as colunas <b>declarado</b> e <b>diferença</b> se preenchem sozinhas.</p>')
+    + '</div>';
 
   /* "ALLIANCE JIU JITSU" era o Alessandro antes de ele ter cadastro e o cálculo já
      realoca. Sobra aqui só a aula realmente sem instrutor preenchido no EVO. */
@@ -1436,7 +1524,7 @@ function blocoPlanos(d){
   /* tabela */
   const ord = [...comTicket].sort((a,b)=>b.alunos-a.alunos);
   h += '<div class="tbl-wrap" style="margin-top:14px"><table><thead><tr>'
-    + '<th>Plano</th><th>Alunos</th><th>% da base</th><th>Vendas no mês</th><th>Receita</th><th>% da receita</th><th>Ticket do plano</th>'
+    + '<th>Plano</th><th>Alunos</th><th>% da base</th><th>Vendas no mês</th><th>Receita</th><th>% da receita</th><th>Ticket do plano</th><th>Sem valor</th>'
     + '</tr></thead><tbody>'
     + ord.map(p=>'<tr><td>'+esc(p.nome)+'</td>'
       + '<td>'+N(p.alunos)+'</td>'
@@ -1444,10 +1532,25 @@ function blocoPlanos(d){
       + '<td>'+N(p.vendas)+'</td>'
       + '<td>'+RS(p.receita)+'</td>'
       + '<td>'+(totRe>0?P(p.receita/totRe*100):'—')+'</td>'
-      + '<td>'+(p.ticket!=null?RS2(p.ticket):'—')+'</td></tr>').join('')
+      + '<td>'+(p.ticket!=null?RS2(p.ticket):'—')+'</td>'
+      + '<td'+(p.sem_valor>0?' class="warn-cell"':'')+'>'+(p.sem_valor>0?N(p.sem_valor):'—')+'</td></tr>').join('')
     + '<tr style="font-weight:700;background:var(--surface-2)"><td>Total</td><td>'+N(totAl)+'</td><td>100,0%</td>'
-    + '<td>'+N(totVe)+'</td><td>'+RS(totRe)+'</td><td>100,0%</td><td>'+(totAl>0?RS2(totRe/totAl):'—')+'</td></tr>'
+    + '<td>'+N(totVe)+'</td><td>'+RS(totRe)+'</td><td>100,0%</td><td>'+(totAl>0?RS2(totRe/totAl):'—')+'</td>'
+    + '<td>'+N(ord.reduce((t,p)=>t+(p.sem_valor||0),0))+'</td></tr>'
     + '</tbody></table></div>';
+
+  /* A EVO deixa o valor de venda vazio em parte dos contratos vigentes,
+     sobretudo nos recorrentes antigos. O aluno é real e conta na base; o que
+     falta é o valor, e isso puxa a receita do plano para baixo. */
+  const semVal = ord.reduce((t,p)=>t+(p.sem_valor||0),0);
+  if(semVal>0){
+    const piores = ord.filter(p=>p.sem_valor>0).sort((a,b)=>b.sem_valor-a.sem_valor).slice(0,3);
+    h += '<div class="alerta" style="margin-top:14px"><b>'+N(semVal)+' '
+      + (semVal===1?'contrato vigente está sem valor de venda no EVO':'contratos vigentes estão sem valor de venda no EVO')+'.</b> '
+      + 'Esses alunos contam na base normalmente — o que falta é o valor, então a receita destes planos aparece menor do que é: '
+      + piores.map(p=>esc(p.nome)+' ('+N(p.sem_valor)+')').join(', ')+'. '
+      + 'Preencher o valor no cadastro do contrato corrige o ticket e o mix na próxima coleta.</div>';
+  }
 
   /* alerta de divergência com o MRR lançado */
   if(totRe>0 && d.mrr>0){
@@ -2053,6 +2156,7 @@ function render(){
   h += '<section><div class="shead"><span class="eyebrow">Professores</span><h2>Conversão por professor</h2></div>'
     + '<p class="sub">Quantas experimentais cada professor deu e quantas viraram matrícula. Diferença grande entre professores é treinável — vale entender o que o de cima faz.</p>'
     + '<div class="card">'
+      + '<p class="note" style="margin-bottom:12px">Esta contagem inclui só a <b>Aula Experimental</b> e a <b>Aula 1 | Introdutória</b>, que são o primeiro contato. As aulas <b>2</b> e <b>3</b> da introdutória ficam de fora: são metodologia da casa para quem já matriculou, e contá-las inflaria as aulas do professor sem nenhuma matrícula possível do outro lado. Elas continuam sendo pagas — aparecem na folha, como complementares.</p>'
       + ((d.professoresSemana && d.professoresSemana.length) ? '<div class="fsep">No mês</div>' : '')
       + grafProfessores(d.professores)
       + ((d.professoresSemana && d.professoresSemana.length)
