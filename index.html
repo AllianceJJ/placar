@@ -862,6 +862,21 @@ function blocoFunil(d, metas){
       + 'então os números abaixo são um piso, não o total.</div>';
   }
 
+  /* As matriculas que nao passaram por experimental. Nao e erro necessariamente:
+     pode ser indicacao direta ou irmao de aluno. Mas se a lista for grande e
+     ninguem souber explicar, e experimental acontecendo fora da grade. */
+  const semExp = ((dados()||{}).detalhe||{}).matriculas_sem_experimental || [];
+  if(semExp.length){
+    html += '<div class="card" style="margin-top:16px"><h3>Entraram sem passar pela experimental</h3>'
+      + '<p class="note">'+N(semExp.length)+' de '+N(d.matriculas||semExp.length)+' matrículas do mês não têm aula experimental lançada na grade. '
+      + 'Pode ser caminho legítimo — indicação direta, irmão de aluno, ex-aluno voltando — ou experimental que aconteceu e não foi lançada. '
+      + 'Vale conferir nome a nome com a recepção: se for a segunda hipótese, a conversão real da experimental é melhor do que o painel mostra.</p>'
+      + '<div class="tbl-wrap"><table><thead><tr><th>Aluno</th><th>Entrou em</th><th>Canal de origem</th></tr></thead><tbody>'
+      + semExp.map(x=>'<tr><td>'+esc(x.aluno)+'</td><td>'+esc(x.entrou||'—')+'</td>'
+          + '<td'+(x.canal?'':' class="warn-cell"')+'>'+esc(x.canal||'não preenchido')+'</td></tr>').join('')
+      + '</tbody></table></div></div>';
+  }
+
   if(fd && fd.sem_registro_de_experimental){
     html += '<div class="alerta" style="margin-top:16px"><b>Nenhuma aula introdutória foi encontrada no período.</b> '
       + 'Foram consultadas '+N(fd.pessoas_consultadas)+' pessoas, entre leads e alunos recentes, e nenhuma tinha sessão marcada na agenda. '
@@ -1113,6 +1128,45 @@ function grafBarrasMes(serie, cor, fmt, titulo){
       barras += '<text x="'+cx.toFixed(1)+'" y="'+(H-8)+'" text-anchor="middle" font-size="10.5" fill="var(--ink-3)">'+rotulo(x.m)+'</text>';
   });
   return '<div class="chartbox"><svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+esc(titulo)+'">'+g+barras+'</svg></div>';
+}
+
+/* ============ sobrevivencia por coorte de entrada ============
+   O cancelamento do mes mistura quem entrou ontem com quem entrou em 2021 e por
+   isso nao diz se a integracao do aluno novo melhorou. Esta tabela diz: de quem
+   entrou em cada mes, quantos ainda estavam aqui 90 dias depois. */
+function blocoCoortes(){
+  const det = (dados()||{}).detalhe||{};
+  const cs = det.coortes_entrada || [];
+  const r = det.coorte_resumo || {};
+  if(!cs.length) return '';
+  const jan = r.janela_dias || 90;
+  const ord = cs.slice().reverse();
+  const media = r.sobrevivencia;
+  const piores = cs.filter(c=>c.entraram>=3 && c.sobrevivencia!=null).sort((a,b)=>a.sobrevivencia-b.sobrevivencia)[0];
+
+  let h = '<div class="tiles">'
+    + tile('Sobrevivência aos '+N(jan)+' dias', media!=null?P(media):'—', 'mute',
+        '<span>'+N(r.sobreviveram)+' de '+N(r.entraram)+' que entraram nos últimos '+N(r.meses_medidos)+' meses medidos</span>')
+    + tile('Perdidos na integração', N(r.perderam), r.perderam>0?'warn':'ok',
+        '<span>saíram antes de completar '+N(jan)+' dias de casa</span>')
+    + '</div>';
+
+  h += '<div class="card" style="margin-top:14px"><h3>De quem entrou em cada mês, quantos ficaram</h3>'
+    + '<p class="note">Cada linha é uma turma de entrada. A conta só considera meses com pelo menos '+N(jan)+' dias de idade — mês recente demais ainda não deu tempo de saber, e por isso não aparece. Sobreviveu quem cancelou depois dos '+N(jan)+' dias ou quem segue ativo hoje.</p>'
+    + '<div class="tbl-wrap"><table><thead><tr><th>Turma de entrada</th><th>Entraram</th><th>Ficaram</th><th>Saíram antes</th><th>Sobrevivência</th></tr></thead><tbody>'
+    + ord.map(c=>{
+        const cls = c.sobrevivencia==null ? '' : (c.sobrevivencia>=70 ? 'ok-cell' : (c.sobrevivencia>=50 ? '' : 'warn-cell'));
+        return '<tr><td>'+esc(rotulo(c.mes))+'</td><td>'+N(c.entraram)+'</td><td>'+N(c.sobreviveram)+'</td>'
+          + '<td>'+(c.perderam>0?N(c.perderam):'—')+'</td>'
+          + '<td class="'+cls+'">'+(c.sobrevivencia!=null?P(c.sobrevivencia):'—')+'</td></tr>';
+      }).join('')
+    + '<tr style="font-weight:700;background:var(--surface-2)"><td>Todas</td><td>'+N(r.entraram)+'</td><td>'+N(r.sobreviveram)+'</td>'
+    + '<td>'+N(r.perderam)+'</td><td>'+(media!=null?P(media):'—')+'</td></tr>'
+    + '</tbody></table></div>'
+    + '<p class="note" style="margin-top:10px">Esta é a linha de base para saber se mexer na integração funcionou. Um mês isolado varia demais numa escola deste tamanho — o que conta é a série andando na mesma direção por três meses seguidos.</p>'
+    + (piores ? '<p class="note">A pior turma medida é a de <b>'+esc(rotuloLongo(piores.mes))+'</b>: entraram '+N(piores.entraram)+' e ficaram '+N(piores.sobreviveram)+'. Vale olhar o que era diferente naquele mês — horário, professor de recepção, promoção em curso.</p>' : '')
+    + '</div>';
+  return h;
 }
 
 function blocoChurn(){
@@ -2300,6 +2354,11 @@ function render(){
     + '<div class="card"><h3>Alunos ativos</h3><p class="note">Base no fim de cada mês.</p>'
       + grafLinha(ate.map(x=>({m:x.mes, v:x.alunos})), 'var(--s1)', 'var(--s1-soft)', v=>nf0.format(v), 'Alunos ativos por mês') + '</div>'
     + '</div></section>';
+
+  const hCoo = blocoCoortes();
+  if(hCoo) h += '<section><div class="shead"><span class="eyebrow">Integração</span><h2>Quem entra, fica?</h2></div>'
+    + '<p class="sub">O número de cancelamentos do mês não responde isso, porque mistura quem entrou ontem com quem entrou há cinco anos. Aqui cada turma de entrada é acompanhada separadamente — é a leitura que diz se a recepção do aluno novo está funcionando.</p>'
+    + hCoo + '</section>';
 
   const hChurn = blocoChurn();
   if(hChurn) h += '<section><div class="shead"><span class="eyebrow">Retenção</span><h2>Mapeamento de cancelamento</h2></div>'
