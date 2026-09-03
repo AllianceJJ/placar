@@ -363,6 +363,22 @@ svg{display:block; width:100%; overflow:visible}
 .warn-cell{color:var(--w-ink,#8a6300);background:var(--w-bg,rgba(181,122,6,.10));font-weight:600}
 .ok-cell{color:var(--o-ink,#0f7a4e);font-weight:600}
 .vazio-cell{color:var(--muted);font-style:italic}
+/* Ficha do professor. Cada card e uma pessoa: o que ela deu, o que declarou
+   e quanto fecha. Sem sombra e sem raio grande — e leitura de conferencia,
+   nao vitrine. */
+.prof-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:14px}
+.prof-card{border:1px solid var(--rule); border-radius:10px; background:var(--surface); padding:16px 18px; display:flex; flex-direction:column; gap:12px}
+.prof-head{display:flex; align-items:baseline; justify-content:space-between; gap:12px; border-bottom:1px solid var(--rule); padding-bottom:10px}
+.prof-nome{font-family:var(--display); font-weight:700; font-size:16.5px; letter-spacing:-.01em; line-height:1.2}
+.prof-pagar{font-family:var(--display); font-weight:700; font-size:17px; white-space:nowrap; font-variant-numeric:tabular-nums}
+.prof-stats{display:grid; grid-template-columns:repeat(3,1fr); gap:10px 12px}
+.prof-stat{display:flex; flex-direction:column; gap:1px}
+.prof-stat b{font-size:17px; font-weight:700; font-variant-numeric:tabular-nums; line-height:1.15}
+.prof-stat span{font-size:10.5px; text-transform:uppercase; letter-spacing:.07em; color:var(--ink-3); font-weight:600}
+.prof-sep{font-size:10.5px; text-transform:uppercase; letter-spacing:.09em; color:var(--ink-3); font-weight:600; border-top:1px solid var(--rule); padding-top:9px}
+.prof-linha{display:flex; justify-content:space-between; gap:12px; font-size:14px; padding:2px 0}
+.prof-linha span:last-child{font-variant-numeric:tabular-nums; white-space:nowrap}
+.prof-mod{font-size:12.5px; color:var(--ink-3); line-height:1.5}
 .tbl-wrap{overflow-x:auto; border:1px solid var(--rule); border-radius:13px; background:var(--surface)}
 .tbl-wrap td.wrap,.tbl-wrap th.wrap{white-space:normal; text-align:left; min-width:200px; max-width:340px}
 table{border-collapse:collapse; width:100%; font-size:13px; font-variant-numeric:tabular-nums}
@@ -994,15 +1010,21 @@ function composicaoReceita(ps){
 function blocoBase(){
   const b = (dados()||{}).base;
   if(!b || !b.cadastrados_ativos) return '';
+  /* A composicao mudou em 02/09/2026. VIP nao e mais fatia separada: o EVO conta
+     VIP como aluno ativo e a lista exportada confirma, entao ele esta DENTRO dos
+     ativos e aparece so como nota. O congelamento e que virou fatia propria —
+     e gente que parou o contrato sem cancelar, e some da base sem virar churn. */
+  const congelados = +b.congelados || 0;
+  const vip = +b.vip_incluidos_na_base || +b.em_cortesia || 0;
   const linhas = [
     ['Cadastros ativos no EVO', b.cadastrados_ativos, 'tudo que aparece como ativo no cadastro'],
-    ['Alunos pagantes', b.alunos_ativos, 'cadastro ativo + contrato dentro da validade'],
-    ['Em cortesia ou VIP', b.em_cortesia, 'contrato vigente sem cobrança'],
+    ['Alunos ativos', b.alunos_ativos, 'cadastro ativo + contrato dentro da validade, VIP incluído'],
+    ['Congelados', congelados, 'contrato suspenso — não pagam, não são churn'],
     ['Cadastro sem contrato vigente', b.cadastro_sem_contrato_vigente, 'ficha aberta, contrato vencido ou nunca feito']
   ];
   const total = b.cadastrados_ativos;
   const cores = ['var(--s1)','var(--saq)','var(--sneg)'];
-  const partes = [b.alunos_ativos, b.em_cortesia, b.cadastro_sem_contrato_vigente];
+  const partes = [b.alunos_ativos, congelados, b.cadastro_sem_contrato_vigente];
   const segs = partes.map((v,i)=>{
     const pct = total>0 ? v/total*100 : 0;
     return '<div class="seg" style="width:'+pct+'%;background:'+cores[i]+'" data-tip="'
@@ -1012,10 +1034,11 @@ function blocoBase(){
   const leg = [1,2,3].map(i=>'<span><i style="background:'+cores[i-1]+'"></i>'+esc(linhas[i][0])+'</span>').join('');
 
   let h = '<div class="tiles">'
-    + tile('Alunos pagantes', N(b.alunos_ativos), 'mute', '<span>mesmo critério do Dashboard do EVO</span>')
+    + tile('Alunos ativos', N(b.alunos_ativos), 'mute', '<span>mesmo critério do Dashboard do EVO</span>')
     + tile('Contratos ativos', N(b.contratos_ativos), 'mute', '<span>'+nf2.format(b.contratos_por_aluno||1)+' por aluno</span>')
     + tile('Com mais de um contrato', N(b.alunos_com_mais_de_um_contrato), 'mute', '<span>coletiva + particular, por exemplo</span>')
-    + tile('Em cortesia ou VIP', N(b.em_cortesia), 'mute', '<span>treinam e não entram na receita</span>')
+    + tile('Congelados', N(congelados), congelados>0?'warn':'mute', '<span>'+(congelados>0?'contrato suspenso, saem da base sem virar churn':'nenhum contrato suspenso')+'</span>')
+    + tile('Em cortesia ou VIP', N(vip), 'mute', '<span>já contados acima, sem receita</span>')
     + '</div>';
 
   h += '<div class="card" style="margin-top:14px"><h3>Do cadastro ao aluno pagante</h3>'
@@ -1436,6 +1459,142 @@ function blocoFolha(d){
       + '</tbody></table></div>'
       + '<p class="note">O exame paga um terço do valor cobrado ao professor que aplicou; o personal paga metade. Os dois valores saem como bolo porque a EVO registra a venda, não quem conduziu — enquanto isso não for lançado na grade, o rateio é combinado na mão.</p></div>';
   }
+  return h;
+}
+
+/* ============ ficha de cada professor ============
+   Junta num lugar so o que estava espalhado por tres blocos: a grade do mes,
+   a grade da semana, o funil de experimentais e a declaracao que o professor
+   manda pelo app. O custo do fechamento vem inteiro — aulas mais a fatia do
+   exame que ele mesmo declarou ter aplicado. */
+function blocoProfessores(d){
+  const dd = dados()||{}; const det = dd.detalhe||{};
+  const fm = det.folha_do_mes || [];
+  if(!fm.length) return '';
+  const vAula = valorAula();
+  const K = (x)=>String(x||'').trim().toUpperCase();
+  const ix = (arr, campo)=>{ const o={}; (arr||[]).forEach(x=>{ if(x) o[K(x[campo])]=x; }); return o; };
+  const iSem = ix(det.aulas_por_professor,'professor');
+  const iFx  = ix(d.professores,'nome');
+  const iFxS = ix(d.professoresSemana,'nome');
+  const decl = (dd.declaracoes||[]).filter(x=>x && x.periodo===d.mes);
+  const iDec = ix(decl,'professor');
+
+  /* Fatia dos exames. A EVO registra a venda do exame mas nao quem aplicou;
+     quem declarou no relatorio do mes fica com a parte, rateada pelo numero de
+     alunos que cada um examinou. Se ninguem declarou, o valor segue sem dono e
+     o painel diz isso em vez de inventar um rateio. */
+  const resumo = det.folha_resumo || {};
+  const bolsoExames = +resumo.parte_dos_professores_nos_exames || 0;
+  const comExame = decl.filter(x=>x.aplicouExame && (+x.exameAlunos||0)>0);
+  const totExAlunos = comExame.reduce((t,x)=>t+(+x.exameAlunos||0),0);
+
+  const monta = (nome, mes)=>{
+    const k = K(nome);
+    const dx = iDec[k]||null, sx = iSem[k]||null, fxm = iFx[k]||null, fxw = iFxS[k]||null;
+    const aulas = mes ? (+mes.aulas||0) : 0;
+    const exAl = (dx && dx.aplicouExame) ? (+dx.exameAlunos||0) : 0;
+    const vEx = (totExAlunos>0 && exAl>0) ? bolsoExames*exAl/totExAlunos : 0;
+    return { nome:nome, mes:mes, sem:sx, fx:fxm, fxw:fxw, dec:dx,
+      aulas:aulas, vAulas:aulas*vAula, exAlunos:exAl, vExames:vEx, total:aulas*vAula+vEx,
+      declarado: dx ? (+dx.aulasDeclaradas||0) : null,
+      dif: dx ? ((+dx.aulasDeclaradas||0) - aulas) : null,
+      particulares: dx ? (+dx.particularesQtd||0) : null };
+  };
+
+  const linhas = fm.map(p=>monta(p.professor, p));
+  /* Quem declarou mas nao aparece na grade do mes tambem entra: pode ter dado
+     so exame ou so particular, e sumir seria pior do que aparecer com zero. */
+  const vistos = {}; linhas.forEach(l=>{ vistos[K(l.nome)]=1; });
+  decl.forEach(x=>{ if(!vistos[K(x.professor)]) linhas.push(monta(x.professor, null)); });
+  linhas.sort((a,b)=>b.total-a.total);
+
+  const totGeral = linhas.reduce((t,l)=>t+l.total,0);
+  const enviaram = linhas.filter(l=>l.dec).length;
+  const semDeclarar = linhas.filter(l=>!l.dec && l.aulas>0).length;
+
+  let h = '<div class="tiles">'
+    + tile('Professores em quadra', N(linhas.filter(l=>l.aulas>0).length), 'mute', '<span>com aula lançada no mês</span>')
+    + tile('Total do fechamento', RS(totGeral), 'mute', '<span>aulas mais a fatia dos exames</span>')
+    + tile('Relatórios recebidos', N(enviaram)+' <small>de '+N(linhas.length)+'</small>', semDeclarar>0?'warn':'ok',
+        '<span>'+(semDeclarar>0 ? N(semDeclarar)+(semDeclarar===1?' professor ainda não enviou':' professores ainda não enviaram') : 'todos enviaram')+'</span>')
+    + '</div>';
+
+  h += '<div class="prof-grid" style="margin-top:14px">' + linhas.map(l=>{
+    const m = l.mes || {}, sx = l.sem || {}, fx = l.fx || {}, fw = l.fxw || {};
+    const conv = (+fx.realizadas||0) > 0 ? (+fx.fechadas||0)/(+fx.realizadas||0)*100 : null;
+    const clsDif = l.dec ? (l.dif===0 ? 'ok-cell' : 'warn-cell') : 'vazio-cell';
+    const media = (+m.aulas||0) > 0 ? (+m.presencas||0)/(+m.aulas||0) : 0;
+
+    let c = '<div class="prof-card">'
+      + '<div class="prof-head"><span class="prof-nome">'+esc(l.nome)+'</span>'
+        + '<span class="prof-pagar">'+RS2(l.total)+'</span></div>'
+
+      + '<div class="prof-stats">'
+        + '<div class="prof-stat"><b>'+N(m.aulas||0)+'</b><span>aulas no mês</span></div>'
+        + '<div class="prof-stat"><b>'+N(m.presencas||0)+'</b><span>presenças</span></div>'
+        + '<div class="prof-stat"><b>'+(media>0?nf1.format(media):'—')+'</b><span>por aula</span></div>'
+        + '<div class="prof-stat"><b>'+N(sx.aulas||0)+'</b><span>aulas na semana</span></div>'
+        + '<div class="prof-stat"><b>'+N(fx.realizadas||0)+'</b><span>experimentais</span></div>'
+        + '<div class="prof-stat"><b>'+(conv!=null?P(conv):'—')+'</b><span>conversão</span></div>'
+      + '</div>';
+
+    if((+m.aulas||0) > 0){
+      c += '<div><div class="prof-sep">Composição das aulas</div>'
+        + '<div class="prof-linha"><span>Coletivas</span><span>'+N(m.coletivas||0)+'</span></div>'
+        + '<div class="prof-linha"><span>Introdutórias <small>primeiro contato</small></span><span>'+N(m.introdutorias||0)+'</span></div>'
+        + '<div class="prof-linha"><span>Complementares <small>aula 2 e 3</small></span><span>'+N(m.complementares||0)+'</span></div>'
+        + '</div>';
+    }
+
+    c += '<div><div class="prof-sep">Declarado no app</div>';
+    if(l.dec){
+      c += '<div class="prof-linha"><span>Aulas declaradas</span><span class="'+clsDif+'">'+N(l.declarado)
+          + (l.dif===0 ? ' <small>confere</small>' : ' <small>'+(l.dif>0?'+':'')+N(l.dif)+' vs. grade</small>')+'</span></div>'
+        + '<div class="prof-linha"><span>Aulas particulares</span><span>'+N(l.particulares||0)+'</span></div>'
+        + '<div class="prof-linha"><span>Exame de faixa</span><span>'
+          + (l.exAlunos>0 ? N(l.exAlunos)+' <small>alunos</small>' : 'não aplicou')+'</span></div>';
+    } else {
+      c += '<p class="note" style="margin:2px 0 0">Relatório deste mês ainda não enviado. Sem ele, exame de faixa e aula particular ficam sem dono no acerto.</p>';
+    }
+    c += '</div>';
+
+    c += '<div><div class="prof-sep">Fechamento</div>'
+      + '<div class="prof-linha"><span>'+N(l.aulas)+' aulas × '+RS2(vAula)+'</span><span>'+RS2(l.vAulas)+'</span></div>'
+      + (l.vExames>0 ? '<div class="prof-linha"><span>Fatia do exame de faixa</span><span>'+RS2(l.vExames)+'</span></div>' : '')
+      + '<div class="prof-linha" style="border-top:1px solid var(--rule); margin-top:5px; padding-top:7px; font-weight:700"><span>Total</span><span>'+RS2(l.total)+'</span></div>'
+      + '</div>';
+
+    const mods = (m.modalidades||[]);
+    if(mods.length) c += '<div class="prof-mod">'+esc(mods.join(' · '))+'</div>';
+
+    return c + '</div>';
+  }).join('') + '</div>';
+
+  /* Particular declarada sem venda correspondente no EVO. Nao e acusacao: e o
+     sinal de que a aula aconteceu e a venda nao foi lancada — ou seja, dinheiro
+     que a escola deu e nao cobrou. Vale conferir antes de fechar o mes. */
+  const av = det.avulsos_do_mes || {};
+  const partDecl = linhas.reduce((t,l)=>t+(+l.particulares||0),0);
+  const partEvo = (+av.particulares_avulsas||0);
+  if(partDecl > partEvo){
+    h += '<div class="alerta" style="margin-top:14px"><b>'+N(partDecl)+' '
+      + (partDecl===1?'aula particular declarada':'aulas particulares declaradas')+' e '
+      + (partEvo===0 ? 'nenhuma lançada como venda no EVO' : N(partEvo)+' lançada'+(partEvo===1?'':'s')+' como venda no EVO')+'.</b> '
+      + 'A aula aconteceu e a cobrança pode não ter saído — é receita que a escola entregou sem faturar. '
+      + 'Confira com quem declarou antes de fechar o mês; se a venda existiu e só não foi lançada, lançar no EVO resolve daqui para frente.</div>';
+  }
+
+  if(bolsoExames > 0 && totExAlunos === 0){
+    h += '<div class="alerta" style="margin-top:14px"><b>'+RS2(bolsoExames)+' da fatia dos exames continua sem dono.</b> '
+      + 'A EVO registra a venda do exame, não quem aplicou. Nenhum professor declarou exame no relatório deste mês, '
+      + 'então esse valor fica de fora das fichas acima e precisa ser rateado na mão. '
+      + 'Quando o professor marcar o exame no app, o rateio passa a sair sozinho.</div>';
+  } else if(totExAlunos > 0){
+    h += '<p class="note" style="margin-top:12px">A fatia dos exames — '+RS2(bolsoExames)+' no mês — é rateada entre quem declarou ter aplicado, '
+      + 'na proporção dos alunos examinados por cada um. É a declaração do professor que resolve isso: a EVO registra a venda do exame, nunca quem conduziu.</p>';
+  }
+
   return h;
 }
 
@@ -2179,6 +2338,11 @@ function render(){
   if(hFolha) h += '<section><div class="shead"><span class="eyebrow">Equipe</span><h2>Folha de aulas do mês</h2></div>'
     + '<p class="sub">Quantas aulas cada professor deu no mês corrente e quanto isso dá pelo valor por aula. É a conta do acerto — o que a grade registrou, não o que foi combinado.</p>'
     + hFolha + '</section>';
+
+  const hProf = blocoProfessores(d);
+  if(hProf) h += '<section><div class="shead"><span class="eyebrow">Professores</span><h2>Ficha de cada professor</h2></div>'
+    + '<p class="sub">Uma ficha por pessoa, com o mês e a semana no mesmo lugar: aulas dadas, presenças, experimentais e conversão, o que ele declarou no app e quanto fecha no acerto. É a leitura individual — a folha acima é a leitura da equipe.</p>'
+    + hProf + '</section>';
 
   const hConf = blocoConferencia(d);
   if(hConf) h += '<section><div class="shead"><span class="eyebrow">Conferência</span><h2>O que o professor declarou</h2></div>'
