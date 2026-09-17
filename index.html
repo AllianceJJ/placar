@@ -601,8 +601,11 @@ function derivar(m, anterior){
      por aqui. Mes lancado na mao, sem esse campo, cai no numero antigo. */
   d.matriculasFunil = (m.matriculasExp!=null) ? m.matriculasExp : (m.matriculas||0);
   d.convExp   = m.realizadas>0 ? (d.matriculasFunil||0)/m.realizadas*100 : null;
-  d.convLead  = m.leads>0 ? (m.agendadas||0)/m.leads*100 : null;
-  d.convTotal = m.leads>0 ? (d.matriculasFunil||0)/m.leads*100 : null;
+  /* 16/09/2026: a EVO tira o lead de /v1/prospects quando ele converte. leads_evo soma os
+     convertidos do mes aos abertos, como o Gerencial > Oportunidades conta. */
+  d.leadsBase = (m.leads_evo!=null) ? m.leads_evo : m.leads;
+  d.convLead  = d.leadsBase>0 ? (m.agendadas||0)/d.leadsBase*100 : null;
+  d.convTotal = d.leadsBase>0 ? (d.matriculasFunil||0)/d.leadsBase*100 : null;
   d.cac       = div(m.invMkt, d.matriculasFunil);
   d.inadPct   = div(m.valorInad, m.mrr); if(d.inadPct!=null) d.inadPct*=100;
   d.receitaPerdida = (d.ticket!=null) ? d.ticket*(m.cancelamentos||0) : null;
@@ -825,16 +828,32 @@ function blocoFunil(d, metas){
      no fim, e a taxa saía menor do que a realidade. As sessões continuam
      visíveis logo abaixo, como número de operação. */
   const fdx = ((dados()||{}).detalhe||{}).funil_diagnostico || {};
-  const pessoasExp = (fdx.no_mes && fdx.no_mes.pessoas!=null) ? +fdx.no_mes.pessoas : (+d.realizadas||0);
+  /* 16/09/2026: a agenda traz aula ja marcada para os proximos dias (finalizada=false).
+     Ela conta como agendada, mas nao e falta nem pessoa que "fez" a experimental.
+     Quando a lista de sessoes do mes esta disponivel, tudo sai dela; senao cai no
+     numero antigo. Vale so para o mes corrente — mes fechado nao tem aula futura. */
+  const exList = ((dados()||{}).detalhe||{}).experimentais_do_mes;
+  const exMes = (Array.isArray(exList) && exList.length && exList[0] && String(exList[0].data||'').slice(0,7)===d.mes) ? exList.filter(x=>x && !x.complementar) : null;
+  const pid = x => x.idMember ? 'm'+x.idMember : 'p'+x.idProspect;
+  const exReal = exMes ? exMes.filter(x=>x.presente && x.finalizada!==false && !x.falta) : null;
+  const exFalt = exMes ? exMes.filter(x=>x.falta) : null;
+  const exFut  = exMes ? exMes.filter(x=>x.finalizada===false && !x.falta) : null;
+  const pessoasExp = exReal ? new Set(exReal.map(pid)).size
+    : ((fdx.no_mes && fdx.no_mes.pessoas!=null) ? +fdx.no_mes.pessoas : (+d.realizadas||0));
+  const futuras = exFut ? exFut.length : (fdx.no_mes && fdx.no_mes.agendadas_futuras!=null ? +fdx.no_mes.agendadas_futuras : 0);
+  const faltas  = exFalt ? exFalt.length : (fdx.no_mes && fdx.no_mes.faltas!=null ? +fdx.no_mes.faltas : null);
+  const agendadasDadas = Math.max(0, (+d.agendadas||0) - futuras);
+  const noShowReal = (faltas!=null && agendadasDadas>0) ? faltas/agendadasDadas*100 : d.noShow;
+  const naoApareceram = (faltas!=null) ? faltas : Math.max(0, agendadasDadas - (+d.realizadas||0));
   const etapas = [
-    {k:'Contatos / leads', v:d.leads, c:'var(--f1)', t:'#0b2545'},
+    {k:'Contatos / leads', v:(d.leadsBase!=null?d.leadsBase:d.leads), c:'var(--f1)', t:'#0b2545'},
     {k:'Pessoas que fizeram a experimental', v:pessoasExp, c:'var(--f3)', t:'#ffffff'},
     {k:'Matrículas vindas da experimental', v:d.matriculasFunil, c:'var(--f4)', t:'#ffffff'}
   ];
   const max = Math.max(1, ...etapas.map(e=>+e.v||0));
   const pct = (a,b)=> (b>0 ? a/b*100 : null);
   const taxas = [
-    {t:'chegaram ao tatame', v:pct(pessoasExp, +d.leads||0)},
+    {t:'chegaram ao tatame', v:pct(pessoasExp, +(d.leadsBase!=null?d.leadsBase:d.leads)||0)},
     {t:'fecharam', v:pct(+d.matriculasFunil||0, pessoasExp)}
   ];
   let html = '<div class="funnel">';
@@ -849,10 +868,12 @@ function blocoFunil(d, metas){
   const fd = ((dados()||{}).detalhe||{}).funil_diagnostico;
 
   if(fd && fd.no_mes){
-    const sess = +fd.no_mes.agendadas||0, real = +fd.no_mes.realizadas||0, pes = +fd.no_mes.pessoas||0;
-    if(sess !== pes) html += '<p class="note" style="margin-top:12px">Na régua acima cada pessoa conta uma vez. '
-      + 'Na agenda do EVO foram <b>'+N(sess)+' sessões</b> marcadas e <b>'+N(real)+'</b> realizadas para <b>'+N(pes)+' pessoas</b> — '
-      + 'a diferença é gente que fez mais de uma aula antes de decidir. A taxa de conversão usa pessoa; a operação da grade usa sessão.</p>';
+    const sess = +fd.no_mes.agendadas||0, real = +fd.no_mes.realizadas||0, pes = pessoasExp;
+    if(sess !== pes || futuras) html += '<p class="note" style="margin-top:12px">Na régua acima cada pessoa conta uma vez. '
+      + 'Na agenda do EVO foram <b>'+N(sess)+' sessões</b> marcadas, <b>'+N(real)+'</b> realizadas'
+      + (futuras ? ', <b>'+N(futuras)+'</b> ainda por acontecer' : '')
+      + ' e <b>'+N(pes)+' pessoas</b> de fato fizeram a aula — '
+      + 'quem fez mais de uma aula antes de decidir conta uma vez. A taxa de conversão usa pessoa; a operação da grade usa sessão.</p>';
   }
 
   if(fd && fd.fila_truncada){
@@ -877,17 +898,29 @@ function blocoFunil(d, metas){
       + '</tbody></table></div></div>';
   }
 
+  const f45 = ((dados()||{}).detalhe||{}).funil_45;
+  if(f45 && Array.isArray(f45.com_experimental)){
+    const virada = f45.com_experimental.filter(x => x.experimental && x.conversao && x.experimental.slice(0,7) !== x.conversao.slice(0,7));
+    if(virada.length) html += '<p class="note" style="margin-top:12px">'+N(virada.length)+' matrícula'+(virada.length>1?'s':'')+' do mês '
+      + 'veio de experimental feita no mês anterior — '+virada.map(x=>esc(x.nome)+' ('+esc(x.experimental.slice(8,10)+'/'+x.experimental.slice(5,7))+(x.professor?', '+esc(x.professor.split(' ')[0]):'')+')').join(', ')
+      + '. A conversão da experimental já conta essas pessoas: a janela é de 45 dias antes da matrícula, não o mês fechado.</p>';
+  }
+  const dupl = ((dados()||{}).detalhe||{}).leads_duplicados || [];
+  if(dupl.length) html += '<p class="note" style="margin-top:12px"><b>'+N(dupl.length)+' lead'+(dupl.length>1?'s':'')+' cadastrado'+(dupl.length>1?'s':'')+' em dobro</b> (mesmo telefone e mesmo nome): '
+    + dupl.map(g => g.leads.map(l => esc(l.nome)).join(' = ')).join('; ')
+    + '. Cadastro repetido infla o topo do funil e derruba a conversão — vale unificar na recepção.</p>';
+
   if(fd && fd.sem_registro_de_experimental){
     html += '<div class="alerta" style="margin-top:16px"><b>Nenhuma aula introdutória foi encontrada no período.</b> '
       + 'Foram consultadas '+N(fd.pessoas_consultadas)+' pessoas, entre leads e alunos recentes, e nenhuma tinha sessão marcada na agenda. '
       + 'Ou não houve introdutória mesmo, ou ela foi dada sem estar agendada no EVO — nesse caso o funil mede menos do que aconteceu.</div>';
   }
 
-  const sNS = sem(d.noShow, metas.noShowBom, metas.noShowLim, 'menor');
+  const sNS = sem(noShowReal, metas.noShowBom, metas.noShowLim, 'menor');
   const sCv = sem(d.convExp, metas.convBom, metas.convLim, 'maior');
   html += '<div class="tiles" style="margin-top:18px">'
-    + tile('No-show da experimental', P(d.noShow), sNS, chip(sNS)+'<span>'+N((d.agendadas||0)-(d.realizadas||0))+' não apareceram</span>')
-    + (fd && fd.no_mes ? tile('Faltas registradas', N(fd.no_mes.faltas), 'mute', '<span>marcadas como falta na agenda do EVO</span>') : '')
+    + tile('No-show da experimental', P(noShowReal), sNS, chip(sNS)+'<span>'+N(naoApareceram)+' não apareceram'+(futuras ? ' · '+N(futuras)+' ainda por acontecer' : '')+'</span>')
+    + (futuras ? tile('Agendadas para os próximos dias', N(futuras), 'mute', '<span>já na agenda, ainda não aconteceram — não contam como falta</span>') : '')
     + (fd && fd.complementares_no_mes ? tile('Aulas complementares', N(fd.complementares_no_mes), 'mute', '<span>aula 2 e 3 da metodologia, fora do funil</span>') : '')
     + tile('Conversão da experimental', P(d.convExp), sCv, chip(sCv)+'<span>média da casa</span>')
     + tile('Conversão de ponta a ponta', P(d.convTotal), 'mute', '<span>do primeiro contato à matrícula</span>')
@@ -897,6 +930,38 @@ function blocoFunil(d, metas){
   if(fora > 0) html += '<p class="note" style="margin-top:12px">O mês fechou com <b>'+N(d.matriculas)+'</b> entradas (novos + retornos), '
     + 'mas só <b>'+N(d.matriculasFunil)+'</b> passaram pela aula experimental. As outras <b>'+N(fora)+'</b> entraram direto — '
     + 'indicação, retorno de ex-aluno ou matrícula de balcão. O funil mede só a porta da experimental.</p>';
+  return html;
+}
+
+function blocoPipeline(){
+  const pp = ((dados()||{}).detalhe||{}).pipeline;
+  if(!pp || !Array.isArray(pp.lista)) return '';
+  const ordem = ['AGENDAR AULA EXPERIMENTAL','EM NEGOCIAÇÃO','CONVERTER PARA CLIENTE'];
+  const et = Object.entries(pp.por_etapa||{}).sort((a,b)=>{
+    const ia = ordem.indexOf(a[0]), ib = ordem.indexOf(b[0]);
+    return (ia<0?99:ia) - (ib<0?99:ib) || b[1]-a[1];
+  });
+  const semEtapa = (pp.por_etapa||{})['Sem etapa']||0;
+  const parados = pp.lista.filter(x => x.dias>=14 && !x.proxima_aula);
+  let html = '<div class="tiles">'
+    + tile('Leads em aberto', N(pp.abertos), 'mute', '<span>cadastrados nos últimos '+N(pp.janela_dias||60)+' dias, sem matrícula</span>')
+    + et.filter(([k])=>k!=='Sem etapa').map(([k,v]) => tile(k.charAt(0)+k.slice(1).toLowerCase(), N(v), 'mute', '<span>etapa do CRM</span>')).join('')
+    + tile('Sem etapa no CRM', N(semEtapa), semEtapa>0 ? (semEtapa/Math.max(1,pp.abertos)>0.5?'crit':'warn') : 'good', '<span>ninguém sabe em que pé está</span>')
+    + tile('Parados há 14+ dias', N(parados.length), parados.length>5?'warn':'mute', '<span>sem aula marcada</span>')
+    + '</div>';
+  if(semEtapa/Math.max(1,pp.abertos) > 0.5) html += '<div class="alerta" style="margin-top:14px"><b>'+P(semEtapa/pp.abertos*100)+' dos leads abertos estão sem etapa.</b> '
+    + 'O pipeline só vira ferramenta quando a equipe marca a etapa no EVO a cada contato. Até lá, a lista abaixo diz quem está parado, mas não diz por quê.</div>';
+  const top = pp.lista.slice(0, 30);
+  html += '<div class="card" style="margin-top:14px"><h3>Quem está parado, do mais antigo para o mais novo</h3>'
+    + '<p class="note">Dias desde o cadastro. "Experimentais" é quantas aulas a pessoa já fez sem fechar; "próxima aula" é o que já está na agenda.</p>'
+    + '<div class="tbl-wrap"><table><thead><tr><th>Lead</th><th>Cadastro</th><th>Dias</th><th>Etapa</th><th>Canal</th><th>Experimentais</th><th>Próxima aula</th></tr></thead><tbody>'
+    + top.map(x => '<tr><td>'+esc(x.nome)+'</td><td>'+esc(x.cadastro||'—')+'</td><td>'+N(x.dias)+'</td>'
+        + '<td'+(x.etapa==='Sem etapa'?' class="warn-cell"':'')+'>'+esc(x.etapa)+'</td>'
+        + '<td'+(x.canal?'':' class="warn-cell"')+'>'+esc(x.canal||'não preenchido')+'</td>'
+        + '<td>'+N(x.experimentais_feitas)+'</td><td>'+esc(x.proxima_aula||'—')+'</td></tr>').join('')
+    + '</tbody></table></div>'
+    + (pp.lista.length>top.length ? '<p class="note">Mostrando '+N(top.length)+' de '+N(pp.lista.length)+'.</p>' : '')
+    + '</div>';
   return html;
 }
 
@@ -2335,7 +2400,9 @@ function render(){
 
   h += '<section><div class="shead"><span class="eyebrow">Placar</span><h2>'+rotuloLongo(d.mes)+'</h2>'
     + '<button class="btn btn-sm" data-acao="editar" style="margin-left:auto">Editar este mês</button></div>'
-    + '<p class="sub">Os seis números que respondem se o mês foi bom. O semáforo compara com as metas definidas no fim da página.</p>'
+    + '<p class="sub">Os seis números que respondem se o mês foi bom. O semáforo compara com as metas definidas no fim da página.'
+    + ((idx === s.length-1 && !d.historico && (dados()||{}).atualizadoEm) ? (function(){ const t = new Date((dados()||{}).atualizadoEm); if(isNaN(t)) return ''; const ate = new Date(t.getTime()-86400000); return ' <b>Foto de '+t.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})+'</b>: cobre até '+ate.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})+'. O que entrou no EVO depois disso só aparece na próxima coleta (segunda 5h).'; })() : '')
+    + '</p>'
     + blocoPlacar(d, ant, metas) + '</section>';
 
   /* a composicao da base e sempre a foto de hoje, entao so faz sentido no mes corrente */
@@ -2370,6 +2437,11 @@ function render(){
     + '<div class="card">' + blocoFunil(d, metas) + '</div>'
     + '<div style="margin-top:14px">' + blocoMeta(ate, metas) + '</div>'
     + '</section>';
+
+  const hPipe = (idx === s.length-1 && !d.historico) ? blocoPipeline() : '';
+  if(hPipe) h += '<section><div class="shead"><span class="eyebrow">Comercial</span><h2>Pipeline de leads</h2></div>'
+    + '<p class="sub">Quem entrou em contato e ainda não fechou, em que etapa do CRM está e há quantos dias. É a lista de trabalho do vendedor — o funil mede o resultado, o pipeline mede o que está no meio do caminho.</p>'
+    + hPipe + '</section>';
 
   h += '<section><div class="shead"><span class="eyebrow">Professores</span><h2>Conversão por professor</h2></div>'
     + '<p class="sub">Quantas experimentais cada professor deu e quantas viraram matrícula. Diferença grande entre professores é treinável — vale entender o que o de cima faz.</p>'
@@ -2872,9 +2944,15 @@ function mostraCarimbo(iso){
     try{ const ls = localStorage.getItem('painel-sjc'); if(ls) carregado = JSON.parse(ls); }catch(e){}
   }
   if(carregado && Array.isArray(carregado.meses)){
+    /* 16/09/2026: o boot descartava detalhe, base, semana, declaracoes e valorAula que
+       o dados.json traz — por isso Composicao da base, coortes, churn, grade, folha,
+       ficha e conferencia nunca apareciam no site publicado. Agora tudo passa. */
     state = {versao:1, atualizadoEm: carregado.atualizadoEm||null, metas:{...METAS_PADRAO, ...(carregado.metas||{})}, meses:carregado.meses,
       cenarios: carregado.cenarios||null, horizonte: carregado.horizonte||12,
-      teto: (carregado.teto!=null?carregado.teto:350)};
+      teto: (carregado.teto!=null?carregado.teto:350),
+      valorAula: (carregado.valorAula!=null?carregado.valorAula:30),
+      detalhe: carregado.detalhe||null, base: carregado.base||null, semana: carregado.semana||null,
+      declaracoes: Array.isArray(carregado.declaracoes)?carregado.declaracoes:[]};
   }
   render();
   try{
