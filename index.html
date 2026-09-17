@@ -785,20 +785,32 @@ function delta(atual, ant, fmt, maiorMelhor){
   return '<span class="delta '+(bom?'up':'down')+'">'+seta+' '+fmt(Math.abs(d))+'</span> <span style="color:var(--ink-3)">vs. mês anterior</span>';
 }
 
+function anoAnterior(d){
+  const s = CTX.serie || [];
+  const [y, m] = String(d.mes||'').split('-'); if(!y) return null;
+  const alvo = (parseInt(y,10)-1) + '-' + m;
+  return s.find(x => x.mes === alvo) || null;
+}
+function yoy(atual, antigo, fmt){
+  if(atual==null || antigo==null || !antigo) return '';
+  const v = (atual-antigo)/antigo*100;
+  return ' <span style="color:var(--ink-3)">· '+(v>=0?'+':'')+P(v)+' vs. ano passado</span>';
+}
 function blocoPlacar(d, ant, metas){
+  const aa = anoAnterior(d);
   const sChurn = sem(d.churnPct, metas.churnBom, metas.churnLim, 'menor');
   const sCresc = sem(d.crescPct, metas.crescBom, metas.crescLim, 'maior');
   const sInad  = sem(d.inadPct,  metas.inadBom,  metas.inadLim,  'menor');
   const sConv  = sem(d.convExp,  metas.convBom,  metas.convLim,  'maior');
   return '<div class="tiles placar">'
    + tile('Alunos ativos', N(d.alunos), 'mute',
-       delta(d.alunos, ant?ant.alunos:null, N, true))
+       delta(d.alunos, ant?ant.alunos:null, N, true) + (aa ? yoy(d.alunos, aa.alunos) : ''))
    + tile('Crescimento líquido', P(d.crescPct), sCresc,
        chip(sCresc)+'<span>'+(d.movimento>=0?'+':'')+N(d.movimento)+' alunos</span>')
    + tile('Churn do mês', P(d.churnPct), sChurn,
        chip(sChurn)+'<span>'+N(d.cancelamentos)+' saídas</span>')
    + tile('Receita recorrente', RS(d.mrr), d.mrr?'mute':'mute',
-       delta(d.mrr, ant?ant.mrr:null, RS, true))
+       delta(d.mrr, ant?ant.mrr:null, RS, true) + (aa && aa.mrr ? yoy(d.mrr, aa.mrr) : ''))
    + tile('Ticket médio', RS2(d.ticket), metas.ticketMeta>0 ? sem(d.ticket, metas.ticketMeta, metas.ticketMeta*0.92,'maior') : 'mute',
        delta(d.ticket, ant?ant.ticket:null, RS2, true))
    + tile('Inadimplência', P(d.inadPct), sInad,
@@ -813,13 +825,22 @@ function blocoEquacao(d){
   if(ok===null) res = '<div class="eq-i eq-res"><span class="k">Consistência</span><span class="v">'+chip('mute','Faltam dados')+'</span></div>';
   else if(ok) res = '<div class="eq-i eq-res"><span class="k">Consistência</span><span class="v">'+chip('good','A conta fecha')+'</span></div>';
   else res = '<div class="eq-i eq-res"><span class="k">Consistência</span><span class="v">'+chip('crit','Diferença de '+N(Math.abs(d.esperado-d.alunos))+' alunos')+'</span></div>';
+  let ritmo = '';
+  if(CTX.mesCorrente && d.mes === CTX.mesCorrente && CTX.diasCobertos && CTX.diasNoMes && CTX.diasCobertos < CTX.diasNoMes){
+    const f = CTX.diasNoMes / CTX.diasCobertos;
+    const ent = ((d.novos||0)+(d.retornos||0)) * f, sai = (d.cancelamentos||0) * f;
+    const cm = CTX.churn12 != null ? d.inicio * CTX.churn12/100 : null;
+    ritmo = '<p class="note" style="margin-top:10px"><b>Ritmo do mês:</b> com '+N(CTX.diasCobertos)+' de '+N(CTX.diasNoMes)+' dias cobertos, o mês fecha em torno de <b>'+N(Math.round(ent))+' entradas</b> e <b>'+N(Math.round(sai))+' saídas</b>'
+      + (cm!=null ? ' — o churn médio de 12 meses prevê '+N(Math.round(cm))+' saídas' : '')
+      + '. Projeção linear, só para não ler o mês pela metade como se fosse o mês inteiro.</p>';
+  }
   return '<div class="eq">'
     + item('Início do mês', N(d.inicio))
     + '<span class="eq-op">+</span>' + item('Novos', N(d.novos))
     + '<span class="eq-op">+</span>' + item('Retornos', N(d.retornos))
     + '<span class="eq-op">−</span>' + item('Cancelamentos', N(d.cancelamentos))
     + '<span class="eq-op">=</span>' + item('Fim do mês', N(d.alunos))
-    + res + '</div>';
+    + res + '</div>' + ritmo;
 }
 
 function blocoFunil(d, metas){
@@ -924,13 +945,40 @@ function blocoFunil(d, metas){
     + (fd && fd.complementares_no_mes ? tile('Aulas complementares', N(fd.complementares_no_mes), 'mute', '<span>aula 2 e 3 da metodologia, fora do funil</span>') : '')
     + tile('Conversão da experimental', P(d.convExp), sCv, chip(sCv)+'<span>média da casa</span>')
     + tile('Conversão de ponta a ponta', P(d.convTotal), 'mute', '<span>do primeiro contato à matrícula</span>')
-    + tile('Custo por matrícula', RS2(d.cac), 'mute', '<span>investimento ÷ matrículas</span>')
+    + ((+d.investimento||0) > 0 ? tile('Custo por matrícula', RS2(d.cac), 'mute', '<span>investimento ÷ matrículas</span>') : '')
     + '</div>';
   const fora = (d.matriculas||0) - (d.matriculasFunil||0);
   if(fora > 0) html += '<p class="note" style="margin-top:12px">O mês fechou com <b>'+N(d.matriculas)+'</b> entradas (novos + retornos), '
     + 'mas só <b>'+N(d.matriculasFunil)+'</b> passaram pela aula experimental. As outras <b>'+N(fora)+'</b> entraram direto — '
     + 'indicação, retorno de ex-aluno ou matrícula de balcão. O funil mede só a porta da experimental.</p>';
   return html;
+}
+
+function blocoQualidade(d){
+  const D = dados()||{}, det = D.detalhe||{};
+  const itens = [];
+  const ps = planosDoMes(d) || [];
+  const semValor = ps.reduce((t,p)=>t+(+p.sem_valor||0),0);
+  if(ps.length) itens.push({k:'Contratos sem valor de venda', v:semValor, dono:'Recepção', efeito:'ticket e mix de planos saem menores do que são', ok: semValor===0});
+  const canais = det.canais_lead || null;
+  const contaCanais = (obj) => { const tot = Object.values(obj).reduce((t,x)=>t+(+x||0),0); const ni = Object.keys(obj).filter(k=>/não informado|nao informado|sem canal|não preenchido|^$/i.test(k)).reduce((t,k)=>t+(+obj[k]||0),0); return [tot, ni]; };
+  if(canais && typeof canais==='object' && !Array.isArray(canais)){ const [tot, ni] = contaCanais(canais);
+    if(tot) itens.push({k:'Leads sem canal de origem', v:ni, total:tot, dono:'Vendedor', efeito:'não dá para saber de onde vem a matrícula nem o que o anúncio traz', ok: ni/tot<0.2}); }
+  else if(det.pipeline && Array.isArray(det.pipeline.lista) && det.pipeline.lista.length){ const l = det.pipeline.lista, ni = l.filter(x=>!x.canal).length;
+    itens.push({k:'Leads abertos sem canal de origem', v:ni, total:l.length, dono:'Vendedor', efeito:'não dá para saber de onde vem a matrícula nem o que o anúncio traz', ok: ni/l.length<0.2}); }
+  const pp = det.pipeline; if(pp && pp.por_etapa){ const se = +pp.por_etapa['Sem etapa']||0; itens.push({k:'Leads abertos sem etapa no CRM', v:se, total:pp.abertos, dono:'Vendedor', efeito:'o pipeline não diz em que pé cada lead está', ok: pp.abertos ? se/pp.abertos<0.3 : true}); }
+  const dup = det.leads_duplicados; if(Array.isArray(dup)) itens.push({k:'Leads cadastrados em dobro', v:dup.length, dono:'Recepção', efeito:'infla o topo do funil e derruba a conversão', ok: dup.length===0});
+  const fo = det.folha_do_mes; if(Array.isArray(fo) && fo.length){ const profs = new Set(fo.map(f=>f.professor)); const decl = (D.declaracoes||[]).filter(x => x && x.periodo === d.mes && profs.has(x.professor)); const rec = new Set(decl.map(x=>x.professor)).size; itens.push({k:'Relatórios de professor recebidos', v:rec, total:profs.size, dono:'Professores', efeito:'exame e particular ficam sem dono no acerto', ok: profs.size ? rec===profs.size : true, invert:true}); }
+  const ch = det.churn || null; if(ch && ch.motivos){ const tot = Object.values(ch.motivos).reduce((t,x)=>t+(+x||0),0); const outros = Object.keys(ch.motivos).filter(k=>/^outros/i.test(k)).reduce((t,k)=>t+(+ch.motivos[k]||0),0); if(tot) itens.push({k:'Cancelamentos com motivo "outros"', v:outros, total:tot, dono:'Recepção', efeito:'o mapa de por que saem perde o principal', ok: outros/tot<0.1}); }
+  const semExp = det.matriculas_sem_experimental; if(Array.isArray(semExp)) itens.push({k:'Matrículas sem experimental lançada', v:semExp.length, dono:'Recepção', efeito:'conversão da experimental sai menor do que é', ok: semExp.length<=1});
+  if(!itens.length) return '';
+  const ruins = itens.filter(x=>!x.ok).length;
+  let h = '<div class="tiles">' + itens.map(x => tile(x.k, N(x.v)+(x.total!=null?' <small>de '+N(x.total)+'</small>':''), x.ok?'good':(x.invert?'warn':'warn'), '<span>'+esc(x.dono)+'</span>')).join('') + '</div>';
+  h += '<div class="tbl-wrap" style="margin-top:14px"><table><thead><tr><th>O que está faltando</th><th>Quanto</th><th>Dono</th><th class="wrap">O que isso estraga no painel</th></tr></thead><tbody>'
+    + itens.map(x=>'<tr><td>'+esc(x.k)+'</td><td'+(x.ok?'':' class="warn-cell"')+'>'+N(x.v)+(x.total!=null?' de '+N(x.total):'')+'</td><td>'+esc(x.dono)+'</td><td class="note wrap">'+esc(x.efeito)+'</td></tr>').join('')
+    + '</tbody></table></div>'
+    + '<p class="note" style="margin-top:10px">'+(ruins ? N(ruins)+' de '+N(itens.length)+' itens fora do lugar. ' : 'Tudo em ordem. ')+'Cada número deste painel é tão bom quanto o que a equipe lança no EVO e no app — esta é a pauta operacional da segunda-feira.</p>';
+  return h;
 }
 
 function blocoPipeline(){
@@ -967,9 +1015,8 @@ function blocoPipeline(){
 
 function blocoMeta(s, metas){
   const d = s[s.length-1];
-  const hist = s.slice(-3);
-  const churnMed = hist.map(x=>x.churnPct).filter(x=>x!=null);
-  const cm = churnMed.length ? churnMed.reduce((a,b)=>a+b,0)/churnMed.length : null;
+  /* 17/09/2026: mesma base da projecao — 12 meses fechados, sem o mes corrente */
+  const cm = CTX.churn12;
   const convs = s.slice(-3).map(x=>x.convExp).filter(x=>x!=null);
   const conv = convs.length ? convs.reduce((a,b)=>a+b,0)/convs.length : null;
   const comps = s.slice(-3).map(x=>x.compPct).filter(x=>x!=null);
@@ -985,7 +1032,7 @@ function blocoMeta(s, metas){
   const leads      = (agendadas!=null && cl) ? agendadas/(cl/100) : null;
   const porDiaUtil = agendadas!=null ? agendadas/22 : null;
   return '<div class="card"><h3>Quanto precisa entrar mês que vem</h3>'
-    + '<p class="note">Com a base de <b>'+N(d.alunos)+'</b> alunos, churn médio de <b>'+P(cm)+'</b> nos últimos meses e a meta de <b>'+P(metas.crescBom)+'</b> de crescimento líquido.</p>'
+    + '<p class="note">Com a base de <b>'+N(d.alunos)+'</b> alunos, churn médio de <b>'+P(cm)+'</b> nos últimos 12 meses fechados (a mesma base da projeção) e a meta de <b>'+P(metas.crescBom)+'</b> de crescimento líquido.</p>'
     + '<div class="tiles">'
     + tile('Só para não encolher', N(Math.ceil(perdas))+' <small>entradas</small>', 'mute', '<span>repõe os cancelamentos esperados</span>')
     + tile('Para bater a meta', N(Math.ceil(precisa))+' <small>entradas</small>', 'mute', '<span>novos + retornos no mês</span>')
@@ -1118,7 +1165,7 @@ function blocoBase(){
     + tile('Contratos ativos', N(b.contratos_ativos), 'mute', '<span>'+nf2.format(b.contratos_por_aluno||1)+' por aluno</span>')
     + tile('Com mais de um contrato', N(b.alunos_com_mais_de_um_contrato), 'mute', '<span>coletiva + particular, por exemplo</span>')
     + tile('Congelados', N(congelados), congelados>0?'warn':'mute', '<span>'+(congelados>0?'contrato suspenso, saem da base sem virar churn':'nenhum contrato suspenso')+'</span>')
-    + tile('Em cortesia ou VIP', N(vip), 'mute', '<span>já contados acima, sem receita</span>')
+    + tile('Em cortesia ou VIP', N(vip), 'mute', '<span>plano VIP, sem receita — o EVO ainda soma os contratos "ACESSO VIP" a R$ 0, por isso o Dashboard mostra mais</span>')
     + '</div>';
 
   h += '<div class="card" style="margin-top:14px"><h3>Do cadastro ao aluno pagante</h3>'
@@ -1355,8 +1402,8 @@ function blocoCaixa(){
     if(servProd>0) fatias.push({nome:'Serviços e produtos', valor:servProd});
     const totTudo = fatias.reduce((t,x)=>t+x.valor,0);
     h += '<div class="card" style="margin-top:14px"><h3>De onde vem a receita</h3>'
-      + '<p class="note">Tudo que a escola faturou no mês numa figura só: cada plano com peso próprio e uma fatia única para serviços e produtos — exame de faixa, aluguel de kimono e afins. Serve para ver o tamanho real de cada fonte antes de decidir onde mexer.</p>'
-      + grafPizza(fatias, 'receita do mês')
+      + '<p class="note">Recorrente contratado mais o que foi vendido fora do plano, numa figura só — o contratado é o que a base deve pagar no mês, não o que já passou pelo caixa (isso está no tile "Movimentado"): cada plano com peso próprio e uma fatia única para serviços e produtos — exame de faixa, aluguel de kimono e afins. Serve para ver o tamanho real de cada fonte antes de decidir onde mexer.</p>'
+      + grafPizza(fatias, 'contratado + avulsos')
       + '<div class="tbl-wrap" style="margin-top:12px"><table><thead><tr><th>Fonte</th><th>Receita</th><th>Peso</th></tr></thead><tbody>'
       + fatias.map(x=>'<tr><td>'+esc(x.nome)+'</td><td>'+RS(x.valor)+'</td><td>'+P(totTudo?x.valor/totTudo*100:0)+'</td></tr>').join('')
       + '<tr style="font-weight:700;background:var(--surface-2)"><td>Total</td><td>'+RS(totTudo)+'</td><td>100,0%</td></tr>'
@@ -1643,7 +1690,8 @@ function blocoProfessores(d){
     const m = l.mes || {}, sx = l.sem || {}, fx = l.fx || {}, fw = l.fxw || {};
     const conv = (+fx.realizadas||0) > 0 ? (+fx.fechadas||0)/(+fx.realizadas||0)*100 : null;
     const clsDif = l.dec ? (l.dif===0 ? 'ok-cell' : 'warn-cell') : 'vazio-cell';
-    const media = (+m.aulas||0) > 0 ? (+m.presencas||0)/(+m.aulas||0) : 0;
+    const kidsM = kidsAulas(m.modalidades), adM = Math.max(0, (+m.aulas||0) - kidsM);
+    const media = adM > 0 ? (+m.presencas||0)/adM : 0;
 
     let c = '<div class="prof-card">'
       + '<div class="prof-head"><span class="prof-nome">'+esc(l.nome)+'</span>'
@@ -1652,7 +1700,7 @@ function blocoProfessores(d){
       + '<div class="prof-stats">'
         + '<div class="prof-stat"><b>'+N(m.aulas||0)+'</b><span>aulas no mês</span></div>'
         + '<div class="prof-stat"><b>'+N(m.presencas||0)+'</b><span>presenças</span></div>'
-        + '<div class="prof-stat"><b>'+(media>0?nf1.format(media):'—')+'</b><span>por aula</span></div>'
+        + '<div class="prof-stat"><b>'+(media>0?nf1.format(media):'—')+'</b><span>por aula adulta'+(kidsM?' · '+N(kidsM)+' infantis':'')+'</span></div>'
         + '<div class="prof-stat"><b>'+N(sx.aulas||0)+'</b><span>aulas na semana</span></div>'
         + '<div class="prof-stat"><b>'+N(fx.realizadas||0)+'</b><span>experimentais</span></div>'
         + '<div class="prof-stat"><b>'+(conv!=null?P(conv):'—')+'</b><span>conversão</span></div>'
@@ -1734,31 +1782,36 @@ function blocoGrade(){
   if(!profs.length) return '';
   const totAulas = profs.reduce((s,p)=>s+p.aulas,0);
   const totPres = profs.reduce((s,p)=>s+p.presencas,0);
+  /* 17/09/2026: turmas infantis nao passam na catraca — presenca zero nao e turma vazia.
+     A media por aula sai so das turmas adultas; a infantil aparece como "sem check-in". */
+  const totKids = profs.reduce((s,p)=>s+kidsAulas(p.modalidades),0);
+  const totAdulto = Math.max(0, totAulas - totKids);
   const maior = profs[0];
   let h = '<div class="tiles">'
     + tile('Aulas dadas na semana', N(totAulas), 'mute', '<span>'+N(profs.length)+' professores em quadra</span>')
     + tile('Quem mais deu aula', esc(maior.professor), 'mute', '<span>'+N(maior.aulas)+' aulas · '+P(maior.aulas/totAulas*100)+' da grade</span>')
-    + tile('Presenças registradas', N(totPres), 'mute', '<span>média de '+nf1.format(totAulas>0?totPres/totAulas:0)+' por aula</span>')
+    + tile('Presenças registradas', N(totPres), 'mute', '<span>média de '+nf1.format(totAdulto>0?totPres/totAdulto:0)+' por aula adulta'+(totKids?' · '+N(totKids)+' aulas infantis sem check-in':'')+'</span>')
     + tile('Modalidades na grade', N(mods.length), 'mute', '<span>turmas diferentes na semana</span>')
     + '</div>';
 
   h += '<div class="card" style="margin-top:14px"><h3>Quem deu aula na semana</h3>'
-    + '<p class="note">Sai direto da grade do EVO. Presenças são os check-ins registrados na sessão — turmas infantis aparecem com zero porque as crianças não passam na catraca.</p>'
+    + '<p class="note">Sai direto da grade do EVO. Presenças são os check-ins da catraca, que a turma infantil não usa — por isso a média por aula considera só as turmas adultas, e as aulas infantis aparecem à parte.</p>'
     + barrasSimples(profs.map(p=>({nome:p.professor, v:p.aulas})), v=>nf0.format(v)+' aulas', 'var(--s1)')
-    + '<div class="tbl-wrap" style="margin-top:14px"><table><thead><tr><th>Professor</th><th>Aulas</th><th>Presenças</th><th>Média por aula</th><th class="wrap">Modalidades</th></tr></thead><tbody>'
-    + profs.map(p=>'<tr><td>'+esc(p.professor)+'</td><td>'+N(p.aulas)+'</td><td>'+N(p.presencas)+'</td>'
-        + '<td>'+(p.media_por_aula!=null?nf1.format(p.media_por_aula):'—')+'</td>'
-        + '<td class="note wrap">'+esc((p.modalidades||[]).join(', '))+'</td></tr>').join('')
+    + '<div class="tbl-wrap" style="margin-top:14px"><table><thead><tr><th>Professor</th><th>Aulas</th><th>Infantis</th><th>Presenças</th><th>Média por aula adulta</th><th class="wrap">Modalidades</th></tr></thead><tbody>'
+    + profs.map(p=>{ const k = kidsAulas(p.modalidades), ad = Math.max(0, p.aulas - k); return '<tr><td>'+esc(p.professor)+'</td><td>'+N(p.aulas)+'</td><td>'+(k?N(k):'—')+'</td><td>'+N(p.presencas)+'</td>'
+        + '<td>'+(ad>0?nf1.format(p.presencas/ad):'—')+'</td>'
+        + '<td class="note wrap">'+esc((p.modalidades||[]).join(', '))+'</td></tr>'; }).join('')
     + '</tbody></table></div></div>';
 
   if(mods.length) h += '<div class="card" style="margin-top:14px"><h3>Modalidades da semana</h3>'
     + '<p class="note">Quantas aulas cada turma teve, quanta gente apareceu e quem conduziu. Ocupação baixa numa turma cheia de aulas é grade mal distribuída, não falta de aluno.</p>'
     + '<div class="tbl-wrap"><table><thead><tr><th>Modalidade</th><th>Aulas</th><th>Presenças</th><th>Média</th><th>Ocupação</th><th class="wrap">Professores</th></tr></thead><tbody>'
-    + mods.map(m=>'<tr><td>'+esc(m.modalidade)+'</td><td>'+N(m.aulas)+'</td><td>'+N(m.presencas)+'</td>'
-        + '<td>'+(m.media_por_aula!=null?nf1.format(m.media_por_aula):'—')+'</td>'
-        + '<td>'+(m.ocupacao!=null?P(m.ocupacao):'—')+'</td>'
-        + '<td class="note wrap">'+esc((m.professores||[]).join(', '))+'</td></tr>').join('')
-    + '</tbody></table></div></div>';
+    + mods.map(m=>{ const kid = KIDS_RE.test(m.modalidade||''); return '<tr><td>'+esc(m.modalidade)+(kid?' <span class="chip mute" style="margin-left:6px"><span class="dot"></span>sem check-in</span>':'')+'</td><td>'+N(m.aulas)+'</td><td>'+(kid?'—':N(m.presencas))+'</td>'
+        + '<td>'+(kid?'—':(m.media_por_aula!=null?nf1.format(m.media_por_aula):'—'))+'</td>'
+        + '<td>'+(kid?'—':(m.ocupacao!=null?P(m.ocupacao):'—'))+'</td>'
+        + '<td class="note wrap">'+esc((m.professores||[]).join(', '))+'</td></tr>'; }).join('')
+    + '</tbody></table></div>'
+    + '<p class="note" style="margin-top:10px">Infantil não tem catraca e não vai ter chamada — a frequência das crianças é lida por outro caminho: contrato ativo, faixa infantil na ficha e cancelamento por plano. Esse recorte entra numa seção própria.</p></div>';
   return h;
 }
 
@@ -1768,6 +1821,13 @@ function blocoPlanos(d){
     return '<div class="empty" style="padding:32px"><h3>Nenhum plano lançado ainda</h3>'
       + '<p>Em "Lançar mês", preencha quantos alunos e quantas vendas cada plano teve. O painel monta a distribuição, o mix de receita e o ticket de cada plano sozinho.</p></div>';
   }
+  /* 17/09/2026: "vendas" do EVO inclui renovacao automatica. Quando a lista de planos
+     vendidos separa novos de renovacoes, o mix passa a mostrar SO contratos novos. */
+  const pvLista = ((dados()||{}).detalhe||{}).planos_vendidos;
+  const normPl = n => String(n||'').replace(/\s*\(.*?\)\s*/g,' ').replace(/\s+/g,' ').trim().toUpperCase();
+  const soNovos = Array.isArray(pvLista) && pvLista.length > 0;
+  if(soNovos){ const mp = {}; for(const x of pvLista){ mp[normPl(x.nome)] = (mp[normPl(x.nome)]||0) + (+x.novas||0); } for(const p of ps){ p.vendas = mp[normPl(p.nome)] || 0; } }
+  const rotV = soNovos ? 'contratos novos' : 'vendas';
   const totAl = ps.reduce((s,p)=>s+p.alunos,0);
   const totVe = ps.reduce((s,p)=>s+p.vendas,0);
   const totRe = ps.reduce((s,p)=>s+p.receita,0);
@@ -1781,7 +1841,7 @@ function blocoPlanos(d){
   let h = '<div class="tiles">'
     + tile('Planos ativos', N(ps.length), 'mute', '<span>'+N(totAl)+' alunos distribuídos</span>')
     + tile('Plano com mais alunos', esc(maisAlunos.nome), 'mute', '<span>'+N(maisAlunos.alunos)+' alunos · '+P(maisAlunos.alunos/totAl*100)+' da base</span>')
-    + tile('Mais vendido no mês', totVe>0?esc(maisVendas.nome):'—', 'mute', '<span>'+N(maisVendas.vendas)+' de '+N(totVe)+' vendas</span>')
+    + tile('Mais vendido no mês', totVe>0?esc(maisVendas.nome):'—', 'mute', '<span>'+N(maisVendas.vendas)+' de '+N(totVe)+' '+rotV+'</span>')
     + (maiorTicket && menorTicket && maiorTicket.nome!==menorTicket.nome
         ? tile('Amplitude de ticket', RS2(maiorTicket.ticket-menorTicket.ticket), 'mute',
             '<span>'+esc(maiorTicket.nome)+' vs. '+esc(menorTicket.nome)+'</span>')
@@ -1791,7 +1851,7 @@ function blocoPlanos(d){
   h += '<div class="grid2" style="margin-top:14px">'
     + '<div class="card"><h3>Onde estão os alunos</h3><p class="note">Quantos alunos cada plano tem hoje e quanto isso representa da base.</p>'
       + barrasPlano(ps, 'alunos', v=>nf0.format(v), 'var(--s1)') + '</div>'
-    + '<div class="card"><h3>O que vendeu no mês</h3><p class="note">Vendas fechadas por plano no período — mostra para onde a base está migrando.</p>'
+    + '<div class="card"><h3>O que vendeu no mês</h3><p class="note">'+(soNovos ? 'Só contratos novos (primeira assinatura). Renovação automática não é venda — está separada mais abaixo.' : 'Vendas fechadas por plano no período — mostra para onde a base está migrando.')+'</p>'
       + barrasPlano(ps, 'vendas', v=>nf0.format(v), 'var(--saq)') + '</div>'
     + '</div>';
 
@@ -1802,7 +1862,7 @@ function blocoPlanos(d){
   /* tabela */
   const ord = [...comTicket].sort((a,b)=>b.alunos-a.alunos);
   h += '<div class="tbl-wrap" style="margin-top:14px"><table><thead><tr>'
-    + '<th>Plano</th><th>Alunos</th><th>% da base</th><th>Vendas no mês</th><th>Receita</th><th>% da receita</th><th>Ticket do plano</th><th>Sem valor</th>'
+    + '<th>Plano</th><th>Alunos</th><th>% da base</th><th>'+(soNovos?'Novos no mês':'Vendas no mês')+'</th><th>Receita</th><th>% da receita</th><th>Ticket do plano</th><th>Sem valor</th>'
     + '</tr></thead><tbody>'
     + ord.map(p=>'<tr><td>'+esc(p.nome)+'</td>'
       + '<td>'+N(p.alunos)+'</td>'
@@ -2257,7 +2317,7 @@ function montarSlides(){
     + '</div>'
     + '<div class="tiles" style="margin-top:14px">'
     + tile('Receita perdida no mês', RS(d.receitaPerdida),'mute','<span>ticket × cancelamentos</span>')
-    + tile('Permanência média', d.permanencia!=null?nf1.format(d.permanencia)+' <small>meses</small>':'—','mute','<span>implícita no churn atual</span>')
+    + tile('Permanência média', CTX.permanencia!=null?nf1.format(CTX.permanencia)+' <small>meses</small>':'—','mute','<span>1 ÷ churn médio de 12 meses ('+P(CTX.churn12)+')</span>')
     + tile('Valor em atraso', RS(d.valorInad), sem(d.inadPct,metas.inadBom,metas.inadLim,'menor'),'<span>'+N(d.inadimplentes)+' alunos</span>')
     + '</div>'});
 
@@ -2362,8 +2422,30 @@ function desenharSlide(){
 const app = document.getElementById('app');
 const mesSel = document.getElementById('mesSel');
 
+/* 17/09/2026: contexto compartilhado entre blocos (calculado uma vez por render) */
+let CTX = { serie: [], churn12: null, permanencia: null, mesCorrente: null, diasCobertos: null, diasNoMes: null };
+function prepararContexto(s){
+  CTX.serie = s;
+  const fechados = s.filter(d => !d.historico).slice(-13, -1).concat(s.filter(d => d.historico).slice(-12));
+  const base = (s.length > 1 ? s.slice(-13, -1) : []).map(x => x.churnPct).filter(x => x != null);
+  CTX.churn12 = base.length ? base.reduce((a,b)=>a+b,0)/base.length : null;
+  CTX.permanencia = (CTX.churn12 > 0) ? 100/CTX.churn12 : null;
+  const at = (dados()||{}).atualizadoEm ? new Date((dados()||{}).atualizadoEm) : null;
+  if(at && !isNaN(at)){
+    const cobre = new Date(at.getTime() - 86400000);
+    CTX.mesCorrente = cobre.getFullYear() + '-' + String(cobre.getMonth()+1).padStart(2,'0');
+    CTX.diasCobertos = cobre.getDate();
+    CTX.diasNoMes = new Date(cobre.getFullYear(), cobre.getMonth()+1, 0).getDate();
+  }
+}
+function kidsAulas(mods){
+  return (mods||[]).reduce((t, m) => { const x = /^(.*?)\s*\((\d+)\)\s*$/.exec(String(m)); return t + ((x && /KIDS|BABY|INFANTIL|MIRIM|JUVENIL/i.test(x[1])) ? +x[2] : 0); }, 0);
+}
+const KIDS_RE = /KIDS|BABY|INFANTIL|MIRIM|JUVENIL/i;
+
 function render(){
   const s = serie(), metas = dados().metas || METAS_PADRAO;
+  prepararContexto(s);
   document.getElementById('demoBar').hidden = !demo;
 
   if(!s.length){
@@ -2405,10 +2487,15 @@ function render(){
     + '</p>'
     + blocoPlacar(d, ant, metas) + '</section>';
 
+  const hQual = (idx === s.length-1 && !d.historico) ? blocoQualidade(d) : '';
+  if(hQual) h += '<section><div class="shead"><span class="eyebrow">Qualidade dos dados</span><h2>O que a equipe precisa lançar</h2></div>'
+    + '<p class="sub">O painel não inventa número: ele lê o que está no EVO e no app. Quando um campo fica vazio, alguma leitura abaixo sai errada — aqui está o que falta, quanto e de quem é.</p>'
+    + hQual + '</section>';
+
   /* a composicao da base e sempre a foto de hoje, entao so faz sentido no mes corrente */
   const hBase = (idx === s.length-1 && !d.historico) ? blocoBase() : '';
   if(hBase) h += '<section><div class="shead"><span class="eyebrow">Base</span><h2>Composição da base</h2></div>'
-    + '<p class="sub">De onde sai o número de alunos. Cadastro ativo não é aluno: só conta quem tem contrato dentro da validade e cobrança maior que zero.</p>'
+    + '<p class="sub">De onde sai o número de alunos. Cadastro ativo não é aluno: só conta quem tem contrato dentro da validade — o mesmo critério do Dashboard do EVO, que inclui VIP e cortesia.</p>'
     + hBase + '</section>';
 
   h += '<section><div class="shead"><span class="eyebrow">Crescimento</span><h2>Movimento de alunos</h2></div>'
@@ -2500,7 +2587,7 @@ function render(){
     + '</div>'
     + '<div class="tiles" style="margin-top:14px">'
     + tile('Receita perdida no mês', RS(d.receitaPerdida), 'mute', '<span>ticket × cancelamentos</span>')
-    + tile('Permanência média', d.permanencia!=null ? nf1.format(d.permanencia)+' <small>meses</small>' : '—', 'mute', '<span>implícita no churn atual</span>')
+    + tile('Permanência média', CTX.permanencia!=null ? nf1.format(CTX.permanencia)+' <small>meses</small>' : '—', 'mute', '<span>1 ÷ churn médio de 12 meses ('+P(CTX.churn12)+')</span>')
     + tile('Contratos por aluno', d.contratosAluno!=null ? nf2.format(d.contratosAluno) : '—', 'mute', '<span>'+N(d.contratos)+' contratos ativos</span>')
     + tile('Valor em atraso', RS(d.valorInad), sem(d.inadPct,metas.inadBom,metas.inadLim,'menor'), '<span>'+N(d.inadimplentes)+' alunos inadimplentes</span>')
     + '</div></section>';
