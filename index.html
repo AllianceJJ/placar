@@ -954,6 +954,66 @@ function blocoFunil(d, metas){
   return html;
 }
 
+function blocoRisco(){
+  const R = ((dados()||{}).detalhe||{}).alunos_em_risco;
+  if(!R || !Array.isArray(R.lista)) return '';
+  const f = R.por_faixa || {};
+  const lista = R.lista.slice(0, 60);
+  let h = '<div class="tiles">'
+    + tile('Adultos em risco', N(R.total), R.total>0 ? (R.total/Math.max(1,R.ativos_avaliados)>0.15?'crit':'warn') : 'good', '<span>de '+N(R.ativos_avaliados)+' adultos ativos avaliados</span>')
+    + tile('14 a 29 dias', N(f['14 a 29 dias']||0), 'warn', '<span>hora de ligar — ainda volta</span>')
+    + tile('30 a 59 dias', N(f['30 a 59 dias']||0), 'warn', '<span>já esfriou; conversa de retorno</span>')
+    + tile('60 dias ou mais', N(f['60 dias ou mais']||0), 'crit', '<span>paga e não vem — cancelamento anunciado</span>')
+    + (f['nunca treinou (faixa conhecida)'] ? tile('Matriculou e nunca treinou', N(f['nunca treinou (faixa conhecida)']), 'crit', '<span>o pior caso: entrou e não apareceu</span>') : '')
+    + '</div>';
+  h += '<p class="note" style="margin-top:12px">"Falta de tempo / não frequenta" responde por 4 em cada 10 cancelamentos. Esta é a lista que chega antes do cancelamento: quem está pagando e não está treinando. A régua automática já manda a mensagem de 14 dias; o que ela não faz é a ligação.</p>';
+  h += '<div class="card" style="margin-top:14px"><h3>Quem está sumido, do mais antigo para o mais recente</h3>'
+    + '<div class="tbl-wrap"><table><thead><tr><th>Aluno</th><th>Dias sem treinar</th><th>Última aula</th><th>Faixa</th><th>Aulas na casa</th><th>Tempo de casa</th></tr></thead><tbody>'
+    + lista.map(x => '<tr><td>'+esc(x.nome)+'</td><td'+(x.nunca_treinou||x.dias_sem_treinar>=60?' class="warn-cell"':'')+'>'+(x.nunca_treinou?'nunca treinou':N(x.dias_sem_treinar))+'</td><td>'+esc(x.ultima_aula||'—')+'</td><td>'+esc(x.faixa||'—')+'</td><td>'+N(x.aulas)+'</td><td>'+(x.dias_de_casa!=null?N(x.dias_de_casa)+' dias':'—')+'</td></tr>').join('')
+    + '</tbody></table></div>'
+    + (R.lista.length>lista.length ? '<p class="note">Mostrando '+N(lista.length)+' de '+N(R.lista.length)+'.</p>' : '')
+    + '</div>';
+  if(R.sem_registro) h += '<p class="note" style="margin-top:12px"><b>'+N(R.sem_registro)+' cadastros ativos sem nenhum check-in e sem faixa na ficha</b> ficaram fora da conta acima: sem catraca e sem faixa, o painel não sabe se é criança (que não passa na catraca) ou adulto que nunca apareceu. Preencher a faixa na ficha da EVO resolve dos dois lados.</p>';
+  return h;
+}
+
+function blocoExame(){
+  const E = ((dados()||{}).detalhe||{}).aptos_ao_exame;
+  if(!E || !Array.isArray(E.lista)) return '';
+  const val = +E.valor_exame || 0;
+  let h = '<div class="tiles">'
+    + tile('Aptos ao exame', N(E.total), E.total>0?'warn':'good', '<span>4º grau com as aulas fechadas</span>')
+    + (val ? tile('Receita parada', RS(E.total*val), 'mute', '<span>'+N(E.total)+' × '+RS(val)+' por exame</span>') : '')
+    + tile('Chegando lá', N((E.chegando||[]).length), 'mute', '<span>faltam até 15 aulas</span>')
+    + '</div>';
+  h += '<p class="note" style="margin-top:12px">Exame é retenção e caixa ao mesmo tempo: o aluno que gradua fica, e o exame é cobrado. Quem está apto e sumido é o primeiro a chamar — a faixa é o motivo para voltar.</p>';
+  h += '<div class="card" style="margin-top:14px"><h3>Quem já pode ser chamado</h3>'
+    + '<div class="tbl-wrap"><table><thead><tr><th>Aluno</th><th>Faixa hoje</th><th>Aulas</th><th>Última aula</th><th>Situação</th></tr></thead><tbody>'
+    + E.lista.map(x => '<tr><td>'+esc(x.nome)+'</td><td>'+esc(x.faixa)+'</td><td>'+N(x.aulas)+'</td><td'+(x.dias_sem_treinar>=14?' class="warn-cell"':'')+'>'+esc(x.ultima_aula||'—')+(x.dias_sem_treinar>=14?' · '+N(x.dias_sem_treinar)+' dias':'')+'</td><td class="note wrap">'+esc(x.situacao||'')+'</td></tr>').join('')
+    + '</tbody></table></div></div>';
+  if((E.chegando||[]).length) h += '<div class="card" style="margin-top:14px"><h3>Próximos a fechar as aulas</h3>'
+    + '<div class="tbl-wrap"><table><thead><tr><th>Aluno</th><th>Faixa</th><th>Aulas</th><th>Faltam</th></tr></thead><tbody>'
+    + E.chegando.map(x => '<tr><td>'+esc(x.nome)+'</td><td>'+esc(x.faixa)+'</td><td>'+N(x.aulas)+'</td><td>'+N(x.faltam)+'</td></tr>').join('')
+    + '</tbody></table></div></div>';
+  return h;
+}
+
+function blocoInfantil(){
+  const I = ((dados()||{}).detalhe||{}).infantil;
+  if(!I || !I.ativos) return '';
+  const faixas = Object.entries(I.por_faixa||{}).sort((a,b)=>b[1]-a[1]);
+  let h = '<div class="tiles">'
+    + tile('Crianças ativas', N(I.ativos), 'mute', '<span>com faixa infantil na ficha da EVO</span>')
+    + tile('Entraram nos últimos 90 dias', N(I.entraram_90_dias||0), 'mute', '<span>turma de integração infantil</span>')
+    + tile('Faixas infantis', N(faixas.length), 'mute', '<span>'+(faixas[0]?esc(faixas[0][0])+' é a maior ('+N(faixas[0][1])+')':'')+'</span>')
+    + '</div>';
+  h += '<div class="card" style="margin-top:14px"><h3>Por faixa</h3>'
+    + barrasSimples(faixas.map(([k,v])=>({nome:k, v})), v=>nf0.format(v), 'var(--s1)') + '</div>';
+  h += '<p class="note" style="margin-top:12px">Infantil não passa na catraca e não vai ter chamada, então a leitura é por contrato e por faixa, não por presença: quantas crianças estão ativas, quantas entraram e como se distribuem. '
+    + (I.presumidos ? N(I.presumidos)+' cadastros ativos ainda não têm faixa na ficha e ficam fora desta conta — pode haver criança entre eles.' : '')+'</p>';
+  return h;
+}
+
 function blocoQualidade(d){
   const D = dados()||{}, det = D.detalhe||{};
   const itens = [];
@@ -2519,6 +2579,16 @@ function render(){
     + '<p class="sub">Doze meses de saídas: quem saiu, quando, de qual plano e por quê. Cancelamento não é evento isolado — é o fim de uma série de sinais que o painel mostra antes.</p>'
     + hChurn + '</section>';
 
+  const hRisco = (idx === s.length-1 && !d.historico) ? blocoRisco() : '';
+  if(hRisco) h += '<section><div class="shead"><span class="eyebrow">Retenção</span><h2>Alunos em risco agora</h2></div>'
+    + '<p class="sub">Quem está pagando e não está treinando. É o indicador que aparece antes do cancelamento — a lista de ligação da semana.</p>'
+    + hRisco + '</section>';
+
+  const hExame = (idx === s.length-1 && !d.historico) ? blocoExame() : '';
+  if(hExame) h += '<section><div class="shead"><span class="eyebrow">Graduação</span><h2>Prontos para o exame de faixa</h2></div>'
+    + '<p class="sub">Faixa e grau lidos da ficha da EVO, aulas contadas pela catraca. Quem fechou o ciclo e ainda não fez o exame.</p>'
+    + hExame + '</section>';
+
   h += '<section><div class="shead"><span class="eyebrow">Comercial</span><h2>Funil da aula experimental</h2></div>'
     + '<p class="sub">Quando a matrícula cai, o funil diz onde: menos gente chegando, gente que não aparece, ou experimental que não fecha. São três donos diferentes.</p>'
     + '<div class="card">' + blocoFunil(d, metas) + '</div>'
@@ -2551,6 +2621,11 @@ function render(){
   if(hGrade) h += '<section><div class="shead"><span class="eyebrow">Grade</span><h2>Aulas e professores na semana</h2></div>'
     + '<p class="sub">Quem esteve em quadra, quantas aulas deu e quanta gente apareceu. É a leitura de carga e de distribuição da grade — separada da conversão comercial.</p>'
     + hGrade + '</section>';
+
+  const hInf = (idx === s.length-1 && !d.historico) ? blocoInfantil() : '';
+  if(hInf) h += '<section><div class="shead"><span class="eyebrow">Infantil</span><h2>Turma infantil</h2></div>'
+    + '<p class="sub">Crianças ativas, por faixa e por entrada — a leitura possível sem catraca e sem chamada.</p>'
+    + hInf + '</section>';
 
   const hFolha = blocoFolha(d);
   if(hFolha) h += '<section><div class="shead"><span class="eyebrow">Equipe</span><h2>Folha de aulas do mês</h2></div>'
