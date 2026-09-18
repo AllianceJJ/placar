@@ -1950,13 +1950,19 @@ function blocoPlanos(d){
       + 'Preencher o valor no cadastro do contrato corrige o ticket e o mix na próxima coleta.</div>';
   }
 
-  /* alerta de divergência com o MRR lançado */
+  /* 17/09/2026: sao duas medidas diferentes, nao um erro. Planos = valor dos contratos vigentes;
+     receita recorrente = cobrancas do mes de alunos ativos (recebiveis). Diferenca vem de desconto,
+     primeira mensalidade proporcional, cobranca de quem ja saiu e familiar pago por outro cadastro.
+     So vira alerta quando passa de 10%. */
   if(totRe>0 && d.mrr>0){
-    const dif = Math.abs(totRe - d.mrr);
-    if(dif/d.mrr > 0.02)
-      h += '<div class="alerta" style="margin-top:14px"><b>A soma dos planos não bate com a receita recorrente.</b> '
-        + 'Os planos somam '+RS(totRe)+' e você lançou '+RS(d.mrr)+' de receita recorrente — diferença de '+RS(dif)+'. '
-        + 'Falta algum plano na lista ou um dos valores está errado.</div>';
+    const dif = totRe - d.mrr;
+    if(Math.abs(dif)/d.mrr > 0.10)
+      h += '<div class="alerta" style="margin-top:14px"><b>Valor contratado e cobrança do mês estão longe demais.</b> '
+        + 'Os contratos vigentes somam '+RS(totRe)+' e as cobranças do mês de alunos ativos somam '+RS(d.mrr)+' — diferença de '+RS(Math.abs(dif))+' ('+P(Math.abs(dif)/d.mrr*100)+'). '
+        + 'Acima de 10% costuma ser contrato sem valor, cobrança não gerada ou plano lançado errado.</div>';
+    else if(Math.abs(dif) > 1)
+      h += '<p class="note" style="margin-top:12px">Os contratos vigentes somam <b>'+RS(totRe)+'</b>; a receita recorrente do placar (<b>'+RS(d.mrr)+'</b>) é a soma das cobranças do mês de alunos ativos. '
+        + 'A diferença de '+RS(Math.abs(dif))+' ('+P(Math.abs(dif)/d.mrr*100)+') é o normal entre valor de contrato e cobrança: desconto, primeira mensalidade proporcional, cobrança de quem saiu no meio do mês e contrato de familiar pago por outro cadastro. São duas réguas, não um erro.</p>';
   }
   return h;
 }
