@@ -2598,6 +2598,17 @@ function render(){
 
   let h = '';
 
+  /* 24/09/2026: alerta de foto velha. A coleta roda toda segunda às 5h; mais de 8 dias
+     sem atualizar significa que ela falhou e o painel está mostrando dado antigo. */
+  { const at = (dados()||{}).atualizadoEm ? new Date((dados()||{}).atualizadoEm) : null;
+    if(at && !isNaN(at) && !demo){
+      const dias = Math.floor((Date.now() - at.getTime()) / 86400000);
+      if(dias > 8) h += '<section><div class="card" style="border-left:4px solid var(--crit)"><h3 style="color:var(--crit-ink)">⚠️ Os dados estão velhos</h3>'
+        + '<p class="note">A última coleta é de <b>'+at.toLocaleDateString('pt-BR')+'</b>, há '+dias+' dias. Ela roda toda segunda às 5h — se passou de 8 dias, falhou. '
+        + 'Tudo abaixo é a foto antiga: confira o "Placar — Coleta e Cálculo" no n8n antes de decidir com esses números.</p></div></section>';
+    }
+  }
+
   if(d.fecha === false){
     h += '<div class="alerta"><b>A conta de alunos não fecha em '+rotuloLongo(d.mes)+'.</b> '
       + 'Com '+N(d.inicio)+' no início, '+N(d.novos)+' novos, '+N(d.retornos)+' retornos e '+N(d.cancelamentos)+' cancelamentos, '
