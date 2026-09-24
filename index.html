@@ -2025,13 +2025,70 @@ function premissas(s){
   };
 }
 
-function cenariosPadrao(p){
+/* 24/09/2026: cenários calibrados pelo próprio histórico (pedido do Eduard).
+   Antes o conservador/otimista tiravam um desvio-padrão MENSAL e aplicavam como se
+   ele se repetisse os 12 meses seguidos — o conservador mostrava a escola caindo de
+   283 para 201, coisa que nunca aconteceu. Agora:
+   - realista: médias dos últimos 12 meses fechados (entradas e churn) + tendência;
+   - backtest: o mesmo modelo foi rodado a partir de cada mês passado e comparado com
+     o que de fato aconteceu 12 meses depois;
+   - conservador = o ano ruim típico (percentil 10 dos erros), realista = mediana,
+     otimista = o ano bom típico (percentil 90). 8 em cada 10 anos da escola caíram
+     dentro dessa faixa. Os três só diferem nas entradas; churn e tendência iguais. */
+function serieFechada(s){
+  const d = new Date(Date.now() - 10800000);
+  const k = d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0');
+  const f = s.filter(x => x.mes < k);
+  return f.length >= 3 ? f : s;
+}
+function base12(h){
+  const w = h.slice(-12);
+  const E = w.reduce((t,d)=>t+(d.novos||0)+(d.retornos||0),0)/Math.max(1,w.length);
+  const cs = w.map(d=>d.churnPct).filter(x=>x!=null && isFinite(x));
+  return { E, C: cs.length ? cs.reduce((a,b)=>a+b,0)/cs.length : 0 };
+}
+const quantil = (a,f) => { const v=[...a].sort((x,y)=>x-y); const i=f*(v.length-1), lo=Math.floor(i), hi=Math.ceil(i); return v[lo]+(v[hi]-v[lo])*(i-lo); };
+let CAL_CACHE = null;
+function calibrar(s){
+  const chave = s.length+'|'+s[s.length-1].mes+'|'+s[s.length-1].alunos;
+  if(CAL_CACHE && CAL_CACHE.chave===chave) return CAL_CACHE;
+  const R = [];
+  for(let t=23; t<s.length-12; t++){
+    const h = s.slice(0,t+1), p = premissas(h), b = base12(h);
+    const pr = projetar(h, p, {ent:b.E, churn:b.C, g:p.g*100, ticket:0}, 12);
+    R.push(s[t+12].alunos / pr[11].alunos);
+  }
+  CAL_CACHE = { chave, n:R.length, ok:R.length>=12,
+    lo: R.length?quantil(R,0.1):1, mid: R.length?quantil(R,0.5):1, hi: R.length?quantil(R,0.9):1 };
+  return CAL_CACHE;
+}
+function entradasPara(s, p, b, fator){
+  const g = p.g*100;
+  const alvo = projetar(s, p, {ent:b.E, churn:b.C, g, ticket:0}, 12)[11].alunos * fator;
+  let lo=0, hi=6;
+  for(let i=0;i<50;i++){ const m=(lo+hi)/2; const v=projetar(s,p,{ent:b.E*m,churn:b.C,g,ticket:0},12)[11].alunos; if(v<alvo) lo=m; else hi=m; }
+  return b.E*(lo+hi)/2;
+}
+function cenariosPadrao(p, s){
+  if(s && s.length>=36){
+    const b = base12(s), cal = calibrar(s);
+    if(cal.ok){
+      return {
+        conservador: {ent: entradasPara(s,p,b,cal.lo),  churn: b.C, g: p.g*100, ticket: 0},
+        realista:    {ent: entradasPara(s,p,b,cal.mid), churn: b.C, g: p.g*100, ticket: 0},
+        otimista:    {ent: entradasPara(s,p,b,cal.hi),  churn: b.C, g: p.g*100, ticket: 0},
+        calibrado: cal
+      };
+    }
+  }
   return {
     conservador: {ent: Math.max(0, p.Ebar - p.sigE), churn: p.Cbar + p.sigC, g: 0,            ticket: 0},
     realista:    {ent: p.Ebar,                        churn: p.Cbar,         g: p.g*100,       ticket: 0},
     otimista:    {ent: p.Ebar + p.sigE,               churn: Math.max(0.5, p.Cbar - p.sigC), g: p.g*100, ticket: 0}
   };
 }
+/* premissas salvas antes da calibração (v2) são ignoradas: foram feitas sobre a conta antiga */
+function cenariosSalvos(){ const c = dados().cenarios; return (c && c.v===2) ? c : {}; }
 
 function mesDoTeto(pontos, teto){
   if(teto==null || !isFinite(teto)) return null;
@@ -2083,7 +2140,7 @@ function grafProjecao(hist, proj, chave, fmt, teto){
   });
   if(teto!=null && isFinite(teto) && teto>=min && teto<=max){
     g += '<line x1="'+ml+'" x2="'+(W-mr)+'" y1="'+Y(teto).toFixed(1)+'" y2="'+Y(teto).toFixed(1)+'" stroke="var(--crit)" stroke-width="2" stroke-dasharray="7 4"/>'
-       + '<text x="'+(ml+6)+'" y="'+(Y(teto)-7).toFixed(1)+'" font-size="10.5" font-weight="700" fill="var(--crit-ink)">teto da estrutura · '+fmt(teto)+'</text>';
+       + '<text x="'+(ml+6)+'" y="'+(Y(teto)-7).toFixed(1)+'" font-size="10.5" font-weight="700" fill="var(--crit-ink)">número mágico · '+fmt(teto)+'</text>';
   }
   /* divisor entre realizado e projetado */
   const xd = X(serieH.length-1);
@@ -2122,9 +2179,10 @@ function blocoCenarios(s){
       + '<p>A projeção precisa de pelo menos 3 meses fechados para separar tendência de ruído. Você tem '+s.length+'. '
       + 'Com 12 meses ela passa a considerar sazonalidade; com 24, a sazonalidade vira confiável.</p></div>';
   }
+  s = serieFechada(s);
   const p = premissas(s);
-  const padrao = cenariosPadrao(p);
-  const salvos = dados().cenarios || {};
+  const padrao = cenariosPadrao(p, s);
+  const salvos = cenariosSalvos();
   const cen = {
     conservador: {...padrao.conservador, ...(salvos.conservador||{})},
     realista:    {...padrao.realista,    ...(salvos.realista||{})},
@@ -2151,46 +2209,50 @@ function blocoCenarios(s){
     };
     const qualquer = bate.conservador||bate.realista||bate.otimista;
     const pctFolga = teto>0 ? folga/teto*100 : null;
-    h += '<div class="card teto-card"><h3>O teto da estrutura</h3>'
-      + '<p class="note">O limite não é tatame — é estacionamento, banheiro, armário e lounge. Enquanto a base não chega aqui, obra não compra crescimento; depois daqui, ela deixa de ser opcional.</p>'
+    h += '<div class="card teto-card"><h3>O número mágico</h3>'
+      + '<p class="note">Não é trava: a escola pode passar desse número. É a meta de referência — o ponto em que a operação atual está cheia e a próxima decisão de estrutura passa a valer.</p>'
       + '<div class="tiles">'
-      + tile('Teto da estrutura hoje', N(teto)+' <small>alunos</small>', 'mute',
+      + tile('Número mágico', N(teto)+' <small>alunos</small>', 'mute',
           '<button class="btn btn-sm" data-acao="editteto">Ajustar</button>')
-      + tile('Folga que resta', N(folga)+' <small>alunos</small>', folga<=0?'crit':(pctFolga<15?'crit':(pctFolga<30?'warn':'good')),
-          '<span>'+P(pctFolga)+' da capacidade ainda livre</span>')
+      + tile('Quanto falta', N(folga)+' <small>alunos</small>', folga<=0?'crit':(pctFolga<15?'crit':(pctFolga<30?'warn':'good')),
+          '<span>'+P(pctFolga)+' do caminho até lá</span>')
       + tile('Otimista chega em', bate.otimista ? rotuloLongo(bate.otimista) : 'Não chega',
           bate.otimista?'warn':'good', '<span>'+(bate.otimista?'cenário mais rápido':'fora do horizonte de '+horizonte+' meses')+'</span>')
       + tile('Realista chega em', bate.realista ? rotuloLongo(bate.realista) : 'Não chega',
           bate.realista?'warn':'good', '<span>'+(bate.realista?'ritmo atual mantido':'fora do horizonte de '+horizonte+' meses')+'</span>')
       + '</div>'
       + (qualquer
-        ? '<p class="note" style="margin-top:14px"><b>Leitura:</b> algum cenário encosta no teto dentro do horizonte. A obra precisa estar pronta <b>antes</b> dessa data — e precisa resolver banheiro, armário e estacionamento, não área de treino.</p>'
-        : '<p class="note" style="margin-top:14px"><b>Leitura:</b> nenhum cenário encosta no teto em '+horizonte+' meses. A obra pode esperar, ou precisa de outra justificativa que não seja capacidade.</p>')
+        ? '<p class="note" style="margin-top:14px"><b>Leitura:</b> algum cenário cruza o número mágico dentro do horizonte. É a data para ter a próxima etapa de estrutura decidida — banheiro, armário e estacionamento, não área de treino.</p>'
+        : '<p class="note" style="margin-top:14px"><b>Leitura:</b> nenhum cenário cruza o número mágico em '+horizonte+' meses. A obra pode esperar, ou precisa de outra justificativa que não seja capacidade.</p>')
       + '</div>';
   }
 
   /* como a conta é feita */
+  const b12 = base12(s), cal = padrao.calibrado;
   h += '<div class="card"><h3>De onde saem as premissas</h3>'
     + '<p class="note">Nada aqui é chute: tudo vem do seu histórico. Você pode sobrescrever qualquer número.</p>'
     + '<div class="eq" style="display:block">'
     + '<div class="formula">alunos<sub>mês seguinte</sub> = alunos<sub>mês</sub> − (alunos<sub>mês</sub> × churn × sazonalidade<sub>churn</sub>) + (entradas × sazonalidade<sub>entradas</sub> × (1 + tendência)<sup>meses</sup>)</div>'
     + '</div>'
     + '<div class="tiles" style="margin-top:14px">'
-    + tile('Entradas por mês', nf1.format(p.Ebar)+' <small>± '+nf1.format(p.sigE)+'</small>', 'mute', '<span>média dessazonalizada dos últimos '+p.baseE+' meses</span>')
-    + tile('Churn por mês', P(p.Cbar)+' <small>± '+nf1.format(p.sigC)+'</small>', 'mute', '<span>mesma base, já sem efeito de mês</span>')
+    + tile('Entradas por mês', nf1.format(b12.E), 'mute', '<span>média dos últimos 12 meses fechados</span>')
+    + tile('Churn por mês', P(b12.C), 'mute', '<span>média dos últimos 12 meses fechados</span>')
     + tile('Tendência de captação', (p.g>=0?'+':'')+nf1.format(p.g*100)+'% <small>/mês</small>', 'mute', '<span>regressão sobre as entradas</span>')
     + tile('Sazonalidade', p.sazonalConfiavel?'Confiável':(p.historico>=12?'Parcial':'Desligada'), p.sazonalConfiavel?'good':(p.historico>=12?'warn':'mute'),
         '<span>'+(p.sazonalConfiavel?'2+ anos de histórico':(p.historico>=12?'1 ano — efeito amortecido pela metade':'precisa de 12 meses'))+'</span>')
     + '</div>'
-    + '<p class="note" style="margin-top:14px">A faixa <b>±</b> é o desvio-padrão do seu próprio histórico. O conservador tira um desvio das entradas e soma um no churn; o otimista faz o contrário. '
-    + 'Isso cobre cerca de dois terços dos meses que você realmente teve — é uma faixa medida, não uma margem inventada.</p>'
+    + (cal
+      ? '<p class="note" style="margin-top:14px"><b>Como a faixa foi calibrada:</b> o mesmo modelo foi rodado a partir de cada um dos últimos '+cal.n+' meses e comparado com o que a escola realmente teve 12 meses depois. '
+        + 'O conservador é o ano ruim típico (em 1 de cada 10 vezes a escola ficou abaixo dele), o realista é a mediana e o otimista é o ano bom típico (em 1 de cada 10 vezes ficou acima). '
+        + 'Os três usam o mesmo churn e a mesma tendência; o que muda é o ritmo de entradas necessário para chegar lá. O mês corrente não entra, porque ainda está aberto.</p>'
+      : '<p class="note" style="margin-top:14px">Ainda não há histórico suficiente para calibrar pela realidade (são precisos 3 anos). Enquanto isso, a faixa usa o desvio-padrão dos meses.</p>')
     + '</div>';
 
   /* resultado dos três cenários */
   h += '<div class="cen-grid">' + [
-    ['conservador','Conservador','c1','Capta um desvio abaixo da média e perde um acima. É o mês ruim se repetindo.'],
-    ['realista','Realista','c2','Mantém a média e a tendência atuais de captação e churn.'],
-    ['otimista','Otimista','c3','Capta um desvio acima e segura o churn um abaixo. Exige ação, não sorte.']
+    ['conservador','Conservador','c1','O ano ruim típico da escola: só 1 em cada 10 ficou abaixo disso.'],
+    ['realista','Realista','c2','A mediana do que a escola já entregou a partir de um ponto como o de hoje.'],
+    ['otimista','Otimista','c3','O ano bom típico: só 1 em cada 10 ficou acima disso. Exige ação, não sorte.']
   ].map(([k,nome,cor,desc])=>{
     const f = fim(k);
     const dAl = f.alunos - hoje.alunos;
@@ -2219,7 +2281,7 @@ function blocoCenarios(s){
     + '</select></label></div>';
 
   h += '<div class="grid2" style="margin-top:14px">'
-    + '<div class="card"><h3>Alunos ativos projetados</h3><p class="note">Linha cinza é o realizado. Tracejadas são os três cenários. A linha vermelha é o teto da estrutura.</p>'
+    + '<div class="card"><h3>Alunos ativos projetados</h3><p class="note">Linha cinza é o realizado. Tracejadas são os três cenários. A linha vermelha é o número mágico.</p>'
       + grafProjecao(s, proj, 'alunos', v=>nf0.format(v), teto) + '</div>'
     + '<div class="card"><h3>Receita recorrente projetada</h3><p class="note">Alunos projetados × ticket médio atual (mais o reajuste que você definir).</p>'
       + grafProjecao(s, proj, 'mrr', v=>'R$ '+nf0.format(v/1000)+'k') + '</div>'
@@ -2250,6 +2312,7 @@ function salvarCenarios(){
     if(!isFinite(v)) return;
     c[k] = {...(c[k]||{})}; c[k][campo] = v;
   });
+  c.v = 2;
   alvo.cenarios = c;
   const hz = document.getElementById('horizonte');
   if(hz) alvo.horizonte = +hz.value;
@@ -2257,7 +2320,7 @@ function salvarCenarios(){
 }
 function editarTeto(){
   const atual = tetoAtual();
-  const v = prompt('Quantos alunos a estrutura atual comporta?\n\nConsidere o que limita de verdade: vagas de estacionamento, banheiros, armários e área de lounge — não o tamanho do tatame.', atual);
+  const v = prompt('Qual é o número mágico de alunos?\n\nÉ a meta de referência, não uma trava — a escola pode passar dele.', atual);
   if(v===null) return;
   const n = parseFloat(String(v).replace(',','.'));
   if(!isFinite(n) || n<=0) return;
@@ -2404,9 +2467,10 @@ function montarSlides(){
 /* resumo dos cenários para o slide (sem os campos editáveis) */
 function blocoCenariosResumo(s){
   if(s.length<3) return '<div class="empty" style="padding:36px"><h3>Faltam meses para projetar</h3><p>A projeção precisa de pelo menos 3 meses fechados.</p></div>';
+  s = serieFechada(s);
   const p = premissas(s);
-  const padrao = cenariosPadrao(p);
-  const salvos = dados().cenarios || {};
+  const padrao = cenariosPadrao(p, s);
+  const salvos = cenariosSalvos();
   const cen = {
     conservador:{...padrao.conservador, ...(salvos.conservador||{})},
     realista:{...padrao.realista, ...(salvos.realista||{})},
@@ -2428,14 +2492,14 @@ function blocoCenariosResumo(s){
       + '<div class="cen-num"><span class="k">Alunos em '+hz+' meses</span><span class="v">'+N(Math.round(f.alunos))+'</span>'
       + '<span class="d '+(dAl>=0?'up':'down')+'">'+(dAl>=0?'+':'')+N(Math.round(dAl))+'</span></div>'
       + '<div class="cen-num"><span class="k">Receita recorrente</span><span class="v">'+RS(f.mrr)+'</span></div>'
-      + (teto!=null?'<div class="cen-num"><span class="k">Teto neste ritmo</span><span class="v">'+N(Math.round(teto))+'</span>'
+      + (teto!=null?'<div class="cen-num"><span class="k">Equilíbrio neste ritmo</span><span class="v">'+N(Math.round(teto))+'</span>'
         + '<span class="d" style="color:var(--ink-3)">entradas ÷ churn</span></div>':'')
       + '</div>';
   }).join('');
   const teto = tetoAtual();
   return '<div class="cen-grid">'+cards+'</div>'
     + '<div class="card" style="margin-top:14px"><h3>Alunos ativos projetados</h3>'
-    + '<p class="note">Tracejadas são os cenários; a linha vermelha é o teto da estrutura.</p>'
+    + '<p class="note">Tracejadas são os cenários; a linha vermelha é o número mágico.</p>'
     + grafProjecao(s, proj, 'alunos', v=>nf0.format(v), teto)+'</div>';
 }
 
@@ -2674,7 +2738,7 @@ function render(){
     + '</div></section>';
 
   h += '<section><div class="shead"><span class="eyebrow">Projeção</span><h2>Para onde a empresa vai</h2></div>'
-    + '<p class="sub">Três cenários construídos a partir do seu próprio histórico — a faixa entre eles é a variação que a academia já teve, não uma margem arbitrária. Ajuste qualquer premissa e o painel recalcula.</p>'
+    + '<p class="sub">Três cenários calibrados pelo que a academia de fato entregou em cada ano da sua história — 8 em cada 10 anos caíram entre o conservador e o otimista. Ajuste qualquer premissa e o painel recalcula.</p>'
     + blocoCenarios(s) + '</section>';
 
   h += '<section><div class="shead"><span class="eyebrow">Histórico</span><h2>Todos os meses</h2>'
