@@ -89,9 +89,12 @@ Use o backup em JSON se precisar levar esses dados para outro lugar.
 }
 ```
 
-## Regenerar o index.html
+## Editar o index.html
 
-O painel é mantido no artifact do Claude e exportado com `build-github.py`,
-que embrulha o arquivo num documento HTML completo e liga o carimbo de
-"atualizado em". Não edite o `index.html` na mão — as mudanças se perdem na
-próxima exportação.
+O `index.html` na raiz do repositório é a versão oficial do painel e é editado
+diretamente aqui. É ele que o GitHub Pages publica.
+
+O artifact do Claude "Placar da Alliance SJC" está desatualizado: parou em
+agosto de 2026, antes da tela de senha e das seções de setembro. Não use o
+artifact para gerar ou sobrescrever o `index.html`, porque isso apagaria as
+mudanças feitas desde então.
