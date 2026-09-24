@@ -11,9 +11,9 @@ O painel lê o `dados.json` toda vez que abre. Quem atualiza é a automação:
 
 | Quando | O que roda |
 |---|---|
-| Todo dia, 03h | Coleta o movimento do dia na EVO API |
-| Segunda, 06h | Fecha a semana, grava o `dados.json` e dispara WhatsApp + e-mail |
-| Dia 1º, 06h | Fecha o mês e recalcula coortes, planos e cenários |
+| Segunda, 03h | Atualiza a contagem de aulas assistidas por aluno (tabela "Aulas por aluno" no n8n) |
+| Segunda, 05h | Fecha a semana, grava o `dados.json` e dispara WhatsApp + e-mail |
+| Dia 1º, 05h | Fecha o mês e recalcula coortes, planos e cenários |
 
 ## Criptografia
 
