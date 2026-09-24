@@ -1872,7 +1872,43 @@ function blocoGrade(){
         + '<td class="note wrap">'+esc((m.professores||[]).join(', '))+'</td></tr>'; }).join('')
     + '</tbody></table></div>'
     + '<p class="note" style="margin-top:10px">Infantil não tem catraca e não vai ter chamada — a frequência das crianças é lida por outro caminho: contrato ativo, faixa infantil na ficha e cancelamento por plano. Esse recorte entra numa seção própria.</p></div>';
+  h += blocoMapaGrade();
   return h;
+}
+
+/* 24/09/2026: mapa de calor da grade — média de presenças por aula em cada dia × horário,
+   nas últimas ~4 semanas lidas pela Coleta. Kids, baby e mirim ficam fora (sem catraca);
+   o juvenil (13+) usa o app e entra. */
+function blocoMapaGrade(){
+  const M = ((dados()||{}).detalhe||{}).mapa_grade;
+  if(!M || !Array.isArray(M.celulas) || !M.celulas.length) return '';
+  const NOMES = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  const dias = [1,2,3,4,5,6,0].filter(d => M.celulas.some(c => c.dia===d));
+  const horas = [...new Set(M.celulas.map(c=>c.hora))].sort();
+  const mapa = {}; M.celulas.forEach(c => mapa[c.dia+'|'+c.hora] = c);
+  const max = Math.max(...M.celulas.map(c=>c.media||0), 1);
+  const fmtD = s => s ? s.split('-').reverse().slice(0,2).join('/') : '—';
+  let h = '<div class="card" style="margin-top:14px"><h3>Mapa da grade: onde a turma enche e onde esvazia</h3>'
+    + '<p class="note">Média de alunos por aula em cada dia e horário, de '+fmtD(M.de)+' a '+fmtD(M.ate)+' ('+N(M.dias_lidos)+' dias de grade). Quanto mais escuro, mais cheio. '
+    + 'Kids, baby e mirim não entram: não passam na catraca ('+N(M.aulas_infantis_fora||0)+' aulas infantis fora da conta). O juvenil (13 anos ou mais) usa o app da EVO e entra.</p>'
+    + '<div class="tbl-wrap"><table style="text-align:center"><thead><tr><th>Horário</th>'+dias.map(d=>'<th>'+NOMES[d]+'</th>').join('')+'</tr></thead><tbody>'
+    + horas.map(hr => '<tr><td><b>'+esc(hr)+'</b></td>' + dias.map(d => {
+        const c = mapa[d+'|'+hr];
+        if(!c) return '<td style="color:var(--ink-3)">·</td>';
+        const pct = Math.round(Math.min(1,(c.media||0)/max)*70)+8;
+        const tip = esc('<b>'+NOMES[d]+' '+hr+'</b><br>'+nf1.format(c.media||0)+' por aula · '+N(c.aulas)+' aulas'+(c.ocupacao!=null?' · '+P(c.ocupacao)+' da capacidade':'')+'<br>'+(c.modalidades||[]).join(', '));
+        return '<td data-tip="'+tip+'" style="background:color-mix(in srgb, var(--c2) '+pct+'%, transparent);'+(pct>45?'color:#fff;':'')+'font-weight:600">'+nf1.format(c.media||0)+'</td>';
+      }).join('') + '</tr>').join('')
+    + '</tbody></table></div>';
+  const validas = M.celulas.filter(c => c.aulas >= 2 && c.media!=null);
+  if(validas.length >= 6){
+    const ord = [...validas].sort((a,b)=>b.media-a.media);
+    const rot = c => NOMES[c.dia]+' '+c.hora+' ('+nf1.format(c.media)+')';
+    h += '<p class="note" style="margin-top:12px"><b>Mais cheios:</b> '+ord.slice(0,3).map(rot).join(', ')
+      + '. <b>Mais vazios:</b> '+ord.slice(-3).reverse().map(rot).join(', ')
+      + '. Horário vazio repetido semana após semana é candidato a mudar de dia, de nível ou de professor antes de sair da grade.</p>';
+  }
+  return h + '</div>';
 }
 
 function blocoPlanos(d){
