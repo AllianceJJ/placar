@@ -1855,7 +1855,7 @@ function blocoGrade(){
     + '</div>';
 
   h += '<div class="card" style="margin-top:14px"><h3>Quem deu aula na semana</h3>'
-    + '<p class="note">Sai direto da grade do EVO. Presenças são os check-ins da catraca, que a turma infantil não usa — por isso a média por aula considera só as turmas adultas, e as aulas infantis aparecem à parte.</p>'
+    + '<p class="note">Sai direto da grade do EVO. Presenças são os check-ins da catraca, que a turma infantil não usa — por isso a média por aula não soma kids e baby, e as aulas infantis aparecem à parte. O juvenil (13 anos ou mais) usa o app da EVO e entra na média.</p>'
     + barrasSimples(profs.map(p=>({nome:p.professor, v:p.aulas})), v=>nf0.format(v)+' aulas', 'var(--s1)')
     + '<div class="tbl-wrap" style="margin-top:14px"><table><thead><tr><th>Professor</th><th>Aulas</th><th>Infantis</th><th>Presenças</th><th>Média por aula adulta</th><th class="wrap">Modalidades</th></tr></thead><tbody>'
     + profs.map(p=>{ const k = kidsAulas(p.modalidades), ad = Math.max(0, p.aulas - k); return '<tr><td>'+esc(p.professor)+'</td><td>'+N(p.aulas)+'</td><td>'+(k?N(k):'—')+'</td><td>'+N(p.presencas)+'</td>'
@@ -2505,9 +2505,9 @@ function prepararContexto(s){
   }
 }
 function kidsAulas(mods){
-  return (mods||[]).reduce((t, m) => { const x = /^(.*?)\s*\((\d+)\)\s*$/.exec(String(m)); return t + ((x && /KIDS|BABY|INFANTIL|MIRIM|JUVENIL/i.test(x[1])) ? +x[2] : 0); }, 0);
+  return (mods||[]).reduce((t, m) => { const x = /^(.*?)\s*\((\d+)\)\s*$/.exec(String(m)); return t + ((x && /KIDS|BABY|INFANTIL|MIRIM/i.test(x[1])) ? +x[2] : 0); }, 0);
 }
-const KIDS_RE = /KIDS|BABY|INFANTIL|MIRIM|JUVENIL/i;
+const KIDS_RE = /KIDS|BABY|INFANTIL|MIRIM/i;
 
 function render(){
   const s = serie(), metas = dados().metas || METAS_PADRAO;
