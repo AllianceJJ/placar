@@ -227,6 +227,21 @@ svg{display:block; width:100%; overflow:visible}
 }
 .empty h3{font-size:17px; margin-bottom:8px}
 .empty p{max-width:46ch; margin:0 auto 18px; font-size:14px}
+/* 25/09/2026: aviso de dados velhos (amarelo > 8 dias, vermelho > 15) e seção sem dado */
+.velho{
+  margin-top:22px; border-radius:11px; padding:13px 16px; font-size:13.5px; line-height:1.45;
+  background:var(--warn-soft); color:var(--warn-ink); border:1px solid var(--warn); border-left-width:5px;
+}
+.velho.crit{background:var(--crit-soft); color:var(--crit-ink); border-color:var(--crit)}
+.velho b{font-weight:700}
+.velho p{margin:4px 0 0; font-size:13px}
+.indisp{
+  border:1px dashed var(--rule-strong); border-radius:13px; padding:20px 20px;
+  background:var(--surface); color:var(--ink-2); font-size:13.5px; line-height:1.5;
+}
+.indisp h3{font-size:15px; margin-bottom:6px; color:var(--ink)}
+.indisp code{font-size:12.5px; background:var(--surface-2); border-radius:5px; padding:1px 5px; overflow-wrap:anywhere}
+.probs code{font-size:12px; overflow-wrap:anywhere}
 
 /* ---------- equation ---------- */
 .eq{
@@ -1897,7 +1912,8 @@ function blocoGrade(){
         + '<td class="note wrap">'+esc((m.professores||[]).join(', '))+'</td></tr>'; }).join('')
     + '</tbody></table></div>'
     + '<p class="note" style="margin-top:10px">Infantil não tem catraca e não vai ter chamada — a frequência das crianças é lida por outro caminho: contrato ativo, faixa infantil na ficha e cancelamento por plano. Esse recorte entra numa seção própria.</p></div>';
-  h += blocoMapaGrade();
+  const hMapa = tentar('mapa', blocoMapaGrade);
+  h += hMapa === INDISP ? '<div style="margin-top:14px">'+blocoIndisponivel('mapa')+'</div>' : hMapa;
   return h;
 }
 
@@ -2636,7 +2652,8 @@ function blocoCenariosResumo(s){
 }
 
 function abrirApresentacao(){
-  slides = montarSlides();
+  try{ slides = montarSlides(); }
+  catch(e){ console.error('Placar: apresentação', e); flag('Apresentação indisponível: dado com problema', 'err'); return; }
   if(!slides.length){ flag('Sem dados para apresentar','err'); return; }
   slideAtual = 0;
   document.getElementById('apres').hidden = false;
@@ -2705,7 +2722,265 @@ function kidsAulas(mods){
 }
 const KIDS_RE = /KIDS|BABY|INFANTIL|MIRIM/i;
 
+/* ============ contrato de dados (25/09/2026) ============
+   Tudo o que o painel lê do dados.json, o formato esperado e as seções que dependem de
+   cada campo. Tipo com '?' pode faltar ou vir null; sem '?' é obrigatório. '[]' vale
+   para cada item da lista. Campo faltando ou com formato errado: as seções dele mostram
+   "dado indisponível", o resto do painel segue, e o problema aparece em "Qualidade dos
+   dados". A mesma lista está em contrato-dados.md e é a base do nó "Validar formato" da
+   Coleta no n8n — mudou aqui, muda lá. */
+const SECOES = {
+  topo:'Aviso de dados velhos', placar:'Placar', qualidade:'Qualidade dos dados', base:'Composição da base',
+  movimento:'Movimento de alunos', coortes:'Quem entra, fica?', churn:'Mapeamento de cancelamento',
+  risco:'Alunos em risco agora', exame:'Prontos para o exame de faixa', funil:'Funil da aula experimental',
+  pipeline:'Pipeline de leads', professores:'Conversão por professor', planos:'Mix de planos',
+  grade:'Aulas e professores na semana', mapa:'Mapa da grade', infantil:'Turma infantil',
+  folha:'Folha de aulas do mês', fichas:'Ficha de cada professor', conferencia:'O que o professor declarou',
+  servicos:'Serviços e produtos', caixa:'Movimentação financeira do mês', financeiro:'Receita e inadimplência',
+  projecao:'Para onde a empresa vai', historico:'Todos os meses'
+};
+const PADRAO_USADO = 'usa o valor padrão';
+const CONTRATO = [
+  ['atualizadoEm', 'data', 'topo', 'aviso no topo: não dá para saber se os dados estão velhos'],
+  ['meses', 'lista', 'placar movimento funil professores planos financeiro'],
+  ['metas', 'obj?', '', 'usa as metas padrão'],
+  ...['churnBom','churnLim','crescBom','crescLim','noShowBom','noShowLim','convBom','convLim','inadBom','inadLim','ticketMeta']
+    .map(k => ['metas.'+k, 'num?', '', 'usa a meta padrão']),
+  ['teto', 'num?', '', PADRAO_USADO], ['horizonte', 'num?', '', PADRAO_USADO],
+  ['valorAula', 'num?', '', PADRAO_USADO], ['cenarios', 'obj?', '', 'usa os cenários calculados'],
+  ['base', 'obj', 'base'],
+  ['base.cadastrados_ativos', 'num', 'base'], ['base.alunos_ativos', 'num', 'base'],
+  ['base.contratos_ativos', 'num', 'base'], ['base.cadastro_sem_contrato_vigente', 'num', 'base'],
+  ['base.congelados', 'num?', 'base'], ['base.vip_incluidos_na_base', 'num?', 'base'], ['base.em_cortesia', 'num?', 'base'],
+  ['base.contratos_por_aluno', 'num?', 'base'], ['base.alunos_com_mais_de_um_contrato', 'num?', 'base'],
+  ['base.renovacoes_sobrepostas', 'num?', 'base'],
+  ['detalhe', 'obj', 'funil coortes churn risco exame pipeline grade infantil folha fichas'],
+  ['detalhe.experimentais_do_mes', 'lista', 'funil'], ['detalhe.experimentais_do_mes[].data', 'texto', 'funil'],
+  ['detalhe.matriculas_sem_experimental', 'lista', 'funil'],
+  ['detalhe.funil_diagnostico', 'obj?', 'funil'], ['detalhe.funil_diagnostico.no_mes', 'obj?', 'funil'],
+  ['detalhe.funil_45', 'obj?', 'funil'], ['detalhe.funil_45.com_experimental', 'lista?', 'funil'],
+  ['detalhe.leads_duplicados', 'lista?', 'funil'],
+  ['detalhe.coortes_entrada', 'lista', 'coortes'], ['detalhe.coortes_entrada[].mes', 'mes', 'coortes'],
+  ['detalhe.coortes_entrada[].entraram', 'num', 'coortes'], ['detalhe.coortes_entrada[].sobreviveram', 'num', 'coortes'],
+  ['detalhe.coorte_resumo', 'obj', 'coortes'],
+  ['detalhe.churn', 'obj', 'churn'], ['detalhe.churn.total', 'num', 'churn'],
+  ['detalhe.churn.serie_mensal', 'lista', 'churn'], ['detalhe.churn.serie_mensal[].mes', 'mes', 'churn'],
+  ['detalhe.churn.serie_mensal[].cancelamentos', 'num', 'churn'], ['detalhe.churn.motivos', 'obj', 'churn'],
+  ['detalhe.churn.pior_mes', 'obj?', 'churn'], ['detalhe.churn.por_plano', 'lista?', 'churn'], ['detalhe.churn.lista', 'lista?', 'churn'],
+  ['detalhe.alunos_em_risco', 'obj', 'risco'], ['detalhe.alunos_em_risco.total', 'num', 'risco'],
+  ['detalhe.alunos_em_risco.ativos_avaliados', 'num', 'risco'], ['detalhe.alunos_em_risco.lista', 'lista', 'risco'],
+  ['detalhe.alunos_em_risco.lista[].nome', 'texto', 'risco'], ['detalhe.alunos_em_risco.lista[].dias_sem_treinar', 'num?', 'risco'],
+  ['detalhe.alunos_em_risco.por_faixa', 'obj?', 'risco'],
+  ['detalhe.aptos_ao_exame', 'obj', 'exame'], ['detalhe.aptos_ao_exame.total', 'num', 'exame'],
+  ['detalhe.aptos_ao_exame.lista', 'lista', 'exame'], ['detalhe.aptos_ao_exame.lista[].nome', 'texto', 'exame'],
+  ['detalhe.aptos_ao_exame.lista[].aulas', 'num', 'exame'], ['detalhe.aptos_ao_exame.chegando', 'lista?', 'exame'],
+  ['detalhe.aptos_ao_exame.valor_exame', 'num?', 'exame'],
+  ['detalhe.pipeline', 'obj', 'pipeline'], ['detalhe.pipeline.abertos', 'num', 'pipeline'],
+  ['detalhe.pipeline.lista', 'lista', 'pipeline'], ['detalhe.pipeline.lista[].nome', 'texto', 'pipeline'],
+  ['detalhe.pipeline.lista[].dias', 'num', 'pipeline'], ['detalhe.pipeline.por_etapa', 'obj?', 'pipeline'],
+  ['detalhe.planos_vendidos', 'lista', 'planos'], ['detalhe.planos_vendidos[].nome', 'texto', 'planos'],
+  ['detalhe.planos_vendidos[].novas', 'num', 'planos'], ['detalhe.planos_vendidos[].renovacoes', 'num', 'planos'],
+  ['detalhe.vendedores', 'lista?', 'professores'],
+  ['detalhe.aulas_por_professor', 'lista', 'grade'], ['detalhe.aulas_por_professor[].professor', 'texto', 'grade'],
+  ['detalhe.aulas_por_professor[].aulas', 'num', 'grade'], ['detalhe.aulas_por_professor[].presencas', 'num', 'grade'],
+  ['detalhe.aulas_por_professor[].modalidades', 'lista?', 'grade'],
+  ['detalhe.aulas_por_modalidade', 'lista', 'grade'], ['detalhe.aulas_por_modalidade[].modalidade', 'texto', 'grade'],
+  ['detalhe.aulas_por_modalidade[].aulas', 'num', 'grade'],
+  ['detalhe.mapa_grade', 'obj?', 'mapa'], ['detalhe.mapa_grade.celulas', 'lista', 'mapa'],
+  ['detalhe.mapa_grade.celulas[].dia', 'num', 'mapa'], ['detalhe.mapa_grade.celulas[].hora', 'texto', 'mapa'],
+  ['detalhe.mapa_grade.celulas[].turmas', 'lista?', 'mapa'],
+  ['detalhe.infantil', 'obj', 'infantil'], ['detalhe.infantil.ativos', 'num', 'infantil'],
+  ['detalhe.infantil.por_faixa', 'obj?', 'infantil'],
+  ['detalhe.folha_do_mes', 'lista', 'folha fichas'], ['detalhe.folha_do_mes[].professor', 'texto', 'folha fichas'],
+  ['detalhe.folha_do_mes[].aulas', 'num', 'folha fichas'], ['detalhe.folha_do_mes[].coletivas', 'num', 'folha'],
+  ['detalhe.folha_do_mes[].introdutorias', 'num', 'folha'], ['detalhe.folha_do_mes[].presencas', 'num', 'folha'],
+  ['detalhe.folha_resumo', 'obj', 'fichas'], ['detalhe.sessoes_no_mes', 'num?', 'folha'],
+  ['detalhe.avulsos_do_mes', 'obj?', 'folha caixa'], ['detalhe.avulsos_do_mes.categorias', 'lista?', 'caixa'],
+  ['detalhe.caixa_do_mes', 'obj?', 'caixa'],
+  ['detalhe.servicos_avulsos', 'lista?', 'servicos'], ['detalhe.produtos_vendidos', 'lista?', 'servicos'],
+  ['detalhe.multiplos_contratos', 'lista?', 'base'], ['detalhe.canais_lead', 'obj?', 'qualidade'],
+  ['diagnostico', 'obj?', 'folha'], ['diagnostico.dias_de_grade_pedidos', 'num?', 'folha'],
+  ['diagnostico.dias_de_grade_lidos', 'num?', 'folha'],
+  ['declaracoes', 'lista?', 'conferencia'], ['declaracoes[].professor', 'texto', 'conferencia'],
+  ['declaracoes[].periodo', 'mes', 'conferencia']
+];
+/* Por mês. No mês mais recente vale o obrigatório; nos meses anteriores (lançados à mão
+   ou de antes de um campo existir) tudo pode faltar, mas o que vier tem de ter o formato. */
+const CONTRATO_MES = [
+  ['alunos', 'num', 'placar movimento financeiro'],
+  ['novos', 'num', 'placar movimento'], ['retornos', 'num', 'placar movimento'],
+  ['cancelamentos', 'num', 'placar movimento'], ['alunosInicio', 'num?', 'placar movimento'],
+  ['mrr', 'num', 'placar financeiro'], ['contratos', 'num', 'financeiro'],
+  ['inadimplentes', 'num', 'placar financeiro'], ['valorInad', 'num', 'placar financeiro'],
+  ['leads', 'num', 'funil'], ['leads_evo', 'num?', 'funil'], ['agendadas', 'num', 'funil'],
+  ['realizadas', 'num', 'funil'], ['matriculas', 'num', 'funil'], ['matriculasExp', 'num?', 'funil'],
+  ['invMkt', 'num?', 'funil'],
+  ['professores', 'lista', 'professores'], ['professores[].nome', 'texto', 'professores'],
+  ['professores[].realizadas', 'num', 'professores'], ['professores[].fechadas', 'num', 'professores'],
+  ['professoresSemana', 'lista?', 'professores'], ['professoresSemana[].nome', 'texto', 'professores'],
+  ['planos', 'lista', 'planos'], ['planos[].nome', 'texto', 'planos'],
+  ['planos[].alunos', 'num', 'planos'], ['planos[].receita', 'num', 'planos'],
+  ['planos[].vendas', 'num?', 'planos'], ['planos[].sem_valor', 'num?', 'planos'],
+  ['servicos', 'lista?', 'servicos'], ['produtos', 'lista?', 'servicos']
+];
+
+const TIPOS = {
+  num:   v => typeof v === 'number' && isFinite(v),
+  texto: v => typeof v === 'string',
+  bool:  v => typeof v === 'boolean',
+  lista: v => Array.isArray(v),
+  obj:   v => !!v && typeof v === 'object' && !Array.isArray(v),
+  mes:   v => typeof v === 'string' && /^\d{4}-(0[1-9]|1[0-2])$/.test(v),
+  data:  v => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test(v) && !isNaN(Date.parse(v))
+};
+const NOME_TIPO = {num:'número', texto:'texto', bool:'sim/não', lista:'lista', obj:'objeto', mes:'mês AAAA-MM', data:'data'};
+const comoVeio = v => v === null ? 'vazio (null)' : Array.isArray(v) ? 'lista'
+  : typeof v === 'number' ? 'número inválido'
+  : typeof v === 'string' ? 'texto "'+(v.length > 24 ? v.slice(0,24)+'…' : v)+'"'
+  : typeof v === 'boolean' ? 'sim/não' : typeof v === 'object' ? 'objeto' : typeof v;
+const pegar = (o, partes) => partes.reduce((x, k) => (x && typeof x === 'object') ? x[k] : undefined, o);
+
+let PROBLEMAS = [];   /* do arquivo, apurados uma vez no boot */
+let FALHAS = [];      /* seção que quebrou ao ser montada; refeito a cada render */
+
+/* Confere um objeto contra as regras. Valor com formato errado é removido, para que
+   nenhuma conta use lixo; a seção dele fica bloqueada e o problema vai para a lista.
+   mes: a que mês o problema pertence (null = arquivo todo; '*' = o mês mais recente). */
+function conferir(raiz, regras, prefixo, mes, relaxar, out){
+  for(const [caminho, tipoBruto, secs, efeito] of regras){
+    const opcional = relaxar || tipoBruto.endsWith('?');
+    const tipo = tipoBruto.replace('?', '');
+    const secoes = secs ? secs.split(' ') : [];
+    const base = {campo: prefixo+caminho, secoes, mes, grave: secoes.length > 0 && !(secs === 'topo'), efeito};
+    const partes = caminho.split('.');
+    const iLista = partes.findIndex(p => p.endsWith('[]'));
+    if(iLista < 0){
+      const pai = pegar(raiz, partes.slice(0, -1));
+      if(!TIPOS.obj(pai)) continue;            /* o pai já foi apontado, ou é opcional e não veio */
+      const k = partes[partes.length-1], v = pai[k];
+      if(v === undefined || v === null){
+        if(!opcional) out.push({...base, problema:'não veio no arquivo'});
+        continue;
+      }
+      if(!TIPOS[tipo](v)){
+        out.push({...base, problema:'veio como '+comoVeio(v)+' — o esperado é '+NOME_TIPO[tipo]});
+        delete pai[k];
+      }
+    } else {
+      const lista = pegar(raiz, partes.slice(0, iLista+1).map(p => p.replace('[]', '')));
+      if(!Array.isArray(lista) || !lista.length) continue;
+      const resto = partes.slice(iLista+1);
+      const ruins = lista.filter(it => {
+        if(!TIPOS.obj(it)) return true;
+        const v = pegar(it, resto);
+        return (v === undefined || v === null) ? !opcional : !TIPOS[tipo](v);
+      }).length;
+      if(ruins) out.push({...base, problema: N(ruins)+' de '+N(lista.length)+' itens sem este campo ou com formato diferente de '+NOME_TIPO[tipo]});
+    }
+  }
+}
+function validarDados(D){
+  const out = [];
+  if(!TIPOS.obj(D)){
+    out.push({campo:'dados.json', problema:'o conteúdo não é um objeto de dados', secoes:['placar'], mes:'*', grave:true});
+    return out;
+  }
+  conferir(D, CONTRATO, '', null, false, out);
+  /* os problemas de "meses" como um todo valem para o mês mais recente, não para o histórico */
+  out.forEach(p => { if(p.campo === 'meses') p.mes = '*'; });
+  if(Array.isArray(D.meses)){
+    const bons = [];
+    D.meses.forEach((m, i) => {
+      if(TIPOS.obj(m) && TIPOS.mes(m.mes)){ bons.push(m); return; }
+      out.push({campo:'meses['+i+'].mes', secoes:[], mes:null, grave:false, efeito:'o mês foi ignorado',
+        problema: TIPOS.obj(m) ? (m.mes == null ? 'não veio no arquivo' : 'veio como '+comoVeio(m.mes)+' — o esperado é mês AAAA-MM') : 'o item não é um mês'});
+    });
+    bons.sort((a, b) => a.mes.localeCompare(b.mes));
+    const ult = bons.length ? bons[bons.length-1].mes : null;
+    bons.forEach(m => conferir(m, CONTRATO_MES, 'meses['+m.mes+'].', m.mes, m.mes !== ult, out));
+    if(!bons.length) out.push({campo:'meses', problema:'nenhum mês válido no arquivo', secoes:'placar movimento funil professores planos financeiro'.split(' '), mes:'*', grave:true});
+    D.meses = bons;
+  }
+  return out;
+}
+
+/* ---- blindagem das seções ---- */
+const INDISP = '\u0001indisponivel';
+let VISTO = {mes:null, ultimo:false};
+function bloqueios(chave){
+  if(demo) return [];
+  return PROBLEMAS.filter(p => p.grave && p.secoes.includes(chave)
+    && (p.mes == null || p.mes === VISTO.mes || (p.mes === '*' && VISTO.ultimo)));
+}
+/* monta uma seção sem deixar o erro dela derrubar a página */
+function tentar(chave, fn){
+  if(bloqueios(chave).length) return INDISP;
+  try{ return fn(); }
+  catch(e){
+    console.error('Placar: a seção "'+(SECOES[chave]||chave)+'" quebrou ao ser montada', e);
+    FALHAS.push({campo:'(dentro da seção)', problema:'algum campo desta seção veio num formato que o painel não esperava (detalhe técnico: '+String((e && e.message) || e)+')', secoes:[chave], mes:null, grave:true});
+    return INDISP;
+  }
+}
+function mostrar(chave, html){ return html === INDISP ? blocoIndisponivel(chave) : html; }
+function blocoIndisponivel(chave){
+  const campos = [...new Set(bloqueios(chave).map(p => p.campo))];
+  const quebrou = FALHAS.some(f => f.secoes.includes(chave));
+  return '<div class="indisp" role="status"><h3>Dado indisponível</h3><p>'
+    + (campos.length
+        ? 'O arquivo de dados chegou sem '+(campos.length > 1 ? 'estes campos' : 'este campo')+' ou com formato errado: '
+          + campos.slice(0, 6).map(c => '<code>'+esc(c)+'</code>').join(', ')+(campos.length > 6 ? ' e mais '+N(campos.length-6) : '')+'. '
+        : (quebrou ? 'Esta seção não conseguiu ser montada com os dados que chegaram. ' : ''))
+    + 'O resto do painel segue normal. Os detalhes estão em <b>Qualidade dos dados</b>.</p></div>';
+}
+/* A lista vai na seção "Qualidade dos dados". Quem corrige é a Coleta no n8n. */
+function blocoProblemas(){
+  if(demo) return '';
+  const todos = PROBLEMAS.concat(FALHAS);
+  if(!todos.length) return '';
+  const secao = p => p.secoes.length ? p.secoes.map(k => SECOES[k] || k).join(', ') : '—';
+  const efeito = p => p.efeito || (p.grave
+    ? (p.mes === '*' ? 'mostra "dado indisponível" no mês mais recente'
+      : (p.mes ? 'mostra "dado indisponível" em '+rotuloLongo(p.mes) : 'mostra "dado indisponível"'))
+    : PADRAO_USADO);
+  return '<div class="card probs" style="border-left:4px solid var(--crit); margin-bottom:14px">'
+    + '<h3>Problemas no arquivo de dados</h3>'
+    + '<p class="note">O arquivo gravado pela coleta chegou com '+N(todos.length)+(todos.length === 1 ? ' problema' : ' problemas')+'. '
+    + 'As seções afetadas mostram "dado indisponível" e o resto do painel funciona normalmente. Quem corrige é a Coleta no n8n.</p>'
+    + '<div class="tbl-wrap"><table><thead><tr><th>Campo</th><th class="wrap">O que veio</th><th class="wrap">Seção afetada</th><th class="wrap">O que o painel fez</th></tr></thead><tbody>'
+    + todos.map(p => '<tr><td><code>'+esc(p.campo)+'</code></td><td class="note wrap">'+esc(p.problema)+'</td>'
+        + '<td class="wrap">'+esc(secao(p))+'</td><td class="note wrap">'+esc(efeito(p))+'</td></tr>').join('')
+    + '</tbody></table></div></div>';
+}
+/* A coleta roda toda segunda às 5h. Mais de 8 dias sem atualizar é aviso amarelo (perdeu
+   uma coleta); mais de 15, vermelho (perdeu duas seguidas). */
+function avisoFotoVelha(){
+  if(demo) return '';
+  const raw = (dados()||{}).atualizadoEm;
+  if(!TIPOS.data(raw)) return '<div class="velho" role="alert"><b>⚠️ Não dá para saber de quando são os dados.</b>'
+    + '<p>Não foi possível ler a data da última coleta. Confira a seção Qualidade dos dados e o "Placar — Coleta e Cálculo" no n8n.</p></div>';
+  const at = new Date(raw);
+  const dias = (Date.now() - at.getTime()) / 86400000;
+  if(dias <= 8) return '';
+  return '<div class="velho'+(dias > 15 ? ' crit' : '')+'" role="alert">'
+    + '<b>⚠️ Os dados são de '+at.toLocaleDateString('pt-BR')+'. A coleta semanal pode ter falhado.</b>'
+    + '<p>A última atualização foi há '+N(Math.floor(dias))+' dias, e a coleta roda toda segunda às 5h. Tudo abaixo é a foto antiga: confira o "Placar — Coleta e Cálculo" no n8n antes de decidir com estes números.</p></div>';
+}
+
 function render(){
+  try{ renderPainel(); }
+  catch(e){
+    /* última rede: se algo escapar das seções, a página ainda diz o que houve */
+    console.error('Placar: falha ao montar o painel', e);
+    FALHAS.push({campo:'(painel)', problema:'erro ao montar: '+String((e && e.message) || e), secoes:[], mes:null, grave:false, efeito:'mostrou só este aviso'});
+    app.innerHTML = avisoFotoVelha()
+      + '<section><div class="indisp"><h3>Dado indisponível</h3><p>O painel não conseguiu ser montado com os dados que chegaram.</p></div>'
+      + '<div style="margin-top:14px">'+blocoProblemas()+'</div></section>';
+  }
+}
+
+function renderPainel(){
+  FALHAS = [];
   const s = serie(), metas = dados().metas || METAS_PADRAO;
   prepararContexto(s);
   document.getElementById('demoBar').hidden = !demo;
@@ -2728,18 +3003,10 @@ function render(){
   const d = s[idx], ant = idx>0 ? s[idx-1] : null;
   const ate = s.slice(0, idx+1);
 
-  let h = '';
+  VISTO = {mes: d.mes, ultimo: idx === s.length-1};
 
-  /* 24/09/2026: alerta de foto velha. A coleta roda toda segunda às 5h; mais de 8 dias
-     sem atualizar significa que ela falhou e o painel está mostrando dado antigo. */
-  { const at = (dados()||{}).atualizadoEm ? new Date((dados()||{}).atualizadoEm) : null;
-    if(at && !isNaN(at) && !demo){
-      const dias = Math.floor((Date.now() - at.getTime()) / 86400000);
-      if(dias > 8) h += '<section><div class="card" style="border-left:4px solid var(--crit)"><h3 style="color:var(--crit-ink)">⚠️ Os dados estão velhos</h3>'
-        + '<p class="note">A última coleta é de <b>'+at.toLocaleDateString('pt-BR')+'</b>, há '+dias+' dias. Ela roda toda segunda às 5h — se passou de 8 dias, falhou. '
-        + 'Tudo abaixo é a foto antiga: confira o "Placar — Coleta e Cálculo" no n8n antes de decidir com esses números.</p></div></section>';
-    }
-  }
+  /* 25/09/2026: foto velha — amarelo com mais de 8 dias, vermelho com mais de 15 */
+  let h = avisoFotoVelha();
 
   if(d.fecha === false){
     h += '<div class="alerta"><b>A conta de alunos não fecha em '+rotuloLongo(d.mes)+'.</b> '
@@ -2758,64 +3025,65 @@ function render(){
     + '<p class="sub">Os seis números que respondem se o mês foi bom. O semáforo compara com as metas definidas no fim da página.'
     + ((idx === s.length-1 && !d.historico && (dados()||{}).atualizadoEm) ? (function(){ const t = new Date((dados()||{}).atualizadoEm); if(isNaN(t)) return ''; const ate = new Date(t.getTime()-86400000); return ' <b>Foto de '+t.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})+'</b>: cobre até '+ate.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})+'. O que entrou no EVO depois disso só aparece na próxima coleta (segunda 5h).'; })() : '')
     + '</p>'
-    + blocoPlacar(d, ant, metas) + '</section>';
+    + mostrar('placar', tentar('placar', ()=>blocoPlacar(d, ant, metas))) + '</section>';
 
-  const hQual = (idx === s.length-1 && !d.historico) ? blocoQualidade(d) : '';
-  if(hQual) h += '<section><div class="shead"><span class="eyebrow">Qualidade dos dados</span><h2>O que a equipe precisa lançar</h2></div>'
-    + '<p class="sub">O painel não inventa número: ele lê o que está no EVO e no app. Quando um campo fica vazio, alguma leitura abaixo sai errada — aqui está o que falta, quanto e de quem é.</p>'
-    + hQual + '</section>';
+  /* 25/09/2026: a seção de qualidade também lista os problemas do arquivo de dados. Ela é
+     montada no fim do render, porque uma seção lá embaixo pode quebrar e entrar na lista. */
+  const hQual = (idx === s.length-1 && !d.historico) ? tentar('qualidade', ()=>blocoQualidade(d)) : '';
+  const MARCA_QUAL = '\u0002qualidade\u0002';
+  h += MARCA_QUAL;
 
   /* a composicao da base e sempre a foto de hoje, entao so faz sentido no mes corrente */
-  const hBase = (idx === s.length-1 && !d.historico) ? blocoBase() : '';
+  const hBase = (idx === s.length-1 && !d.historico) ? tentar('base', blocoBase) : '';
   if(hBase) h += '<section><div class="shead"><span class="eyebrow">Base</span><h2>Composição da base</h2></div>'
     + '<p class="sub">De onde sai o número de alunos. Cadastro ativo não é aluno: só conta quem tem contrato dentro da validade — o mesmo critério do Dashboard do EVO, que inclui VIP e cortesia.</p>'
-    + hBase + '</section>';
+    + mostrar('base', hBase) + '</section>';
 
   h += '<section><div class="shead"><span class="eyebrow">Crescimento</span><h2>Movimento de alunos</h2></div>'
     + '<p class="sub">A conta que precisa fechar todo mês. Se a diferença não for zero, o dado está errado — corrija antes de tirar qualquer conclusão.</p>'
-    + blocoEquacao(d)
+    + mostrar('movimento', tentar('movimento', ()=> blocoEquacao(d)
     + '<div class="grid2" style="margin-top:14px">'
     + '<div class="card"><h3>Entradas contra cancelamentos</h3><p class="note">Barra para cima: novos + retornos. Para baixo: cancelamentos.</p>'
       + '<div class="legend"><span><i style="background:var(--s1)"></i>Entradas</span><span><i style="background:var(--sneg)"></i>Cancelamentos</span></div>'
       + grafMovimento(ate) + '</div>'
     + '<div class="card"><h3>Alunos ativos</h3><p class="note">Base no fim de cada mês.</p>'
       + grafLinha(ate.map(x=>({m:x.mes, v:x.alunos})), 'var(--s1)', 'var(--s1-soft)', v=>nf0.format(v), 'Alunos ativos por mês') + '</div>'
-    + '</div></section>';
+    + '</div>')) + '</section>';
 
-  const hCoo = blocoCoortes();
+  const hCoo = tentar('coortes', blocoCoortes);
   if(hCoo) h += '<section><div class="shead"><span class="eyebrow">Integração</span><h2>Quem entra, fica?</h2></div>'
     + '<p class="sub">O número de cancelamentos do mês não responde isso, porque mistura quem entrou ontem com quem entrou há cinco anos. Aqui cada turma de entrada é acompanhada separadamente — é a leitura que diz se a recepção do aluno novo está funcionando.</p>'
-    + hCoo + '</section>';
+    + mostrar('coortes', hCoo) + '</section>';
 
-  const hChurn = blocoChurn();
+  const hChurn = tentar('churn', blocoChurn);
   if(hChurn) h += '<section><div class="shead"><span class="eyebrow">Retenção</span><h2>Mapeamento de cancelamento</h2></div>'
     + '<p class="sub">Doze meses de saídas: quem saiu, quando, de qual plano e por quê. Cancelamento não é evento isolado — é o fim de uma série de sinais que o painel mostra antes.</p>'
-    + hChurn + '</section>';
+    + mostrar('churn', hChurn) + '</section>';
 
-  const hRisco = (idx === s.length-1 && !d.historico) ? blocoRisco() : '';
+  const hRisco = (idx === s.length-1 && !d.historico) ? tentar('risco', blocoRisco) : '';
   if(hRisco) h += '<section><div class="shead"><span class="eyebrow">Retenção</span><h2>Alunos em risco agora</h2></div>'
     + '<p class="sub">Quem está pagando e não está treinando. É o indicador que aparece antes do cancelamento — a lista de ligação da semana.</p>'
-    + hRisco + '</section>';
+    + mostrar('risco', hRisco) + '</section>';
 
-  const hExame = (idx === s.length-1 && !d.historico) ? blocoExame() : '';
+  const hExame = (idx === s.length-1 && !d.historico) ? tentar('exame', blocoExame) : '';
   if(hExame) h += '<section><div class="shead"><span class="eyebrow">Graduação</span><h2>Prontos para o exame de faixa</h2></div>'
     + '<p class="sub">Faixa e grau lidos da ficha da EVO, aulas contadas pela catraca. Quem fechou o ciclo e ainda não fez o exame.</p>'
-    + hExame + '</section>';
+    + mostrar('exame', hExame) + '</section>';
 
   h += '<section><div class="shead"><span class="eyebrow">Comercial</span><h2>Funil da aula experimental</h2></div>'
     + '<p class="sub">Quando a matrícula cai, o funil diz onde: menos gente chegando, gente que não aparece, ou experimental que não fecha. São três donos diferentes.</p>'
-    + '<div class="card">' + blocoFunil(d, metas) + '</div>'
-    + '<div style="margin-top:14px">' + blocoMeta(ate, metas) + '</div>'
+    + mostrar('funil', tentar('funil', ()=> '<div class="card">' + blocoFunil(d, metas) + '</div>'
+    + '<div style="margin-top:14px">' + blocoMeta(ate, metas) + '</div>'))
     + '</section>';
 
-  const hPipe = (idx === s.length-1 && !d.historico) ? blocoPipeline() : '';
+  const hPipe = (idx === s.length-1 && !d.historico) ? tentar('pipeline', blocoPipeline) : '';
   if(hPipe) h += '<section><div class="shead"><span class="eyebrow">Comercial</span><h2>Pipeline de leads</h2></div>'
     + '<p class="sub">Quem entrou em contato e ainda não fechou, em que etapa do CRM está e há quantos dias. É a lista de trabalho do vendedor — o funil mede o resultado, o pipeline mede o que está no meio do caminho.</p>'
-    + hPipe + '</section>';
+    + mostrar('pipeline', hPipe) + '</section>';
 
   h += '<section><div class="shead"><span class="eyebrow">Professores</span><h2>Conversão por professor</h2></div>'
     + '<p class="sub">Quantas experimentais cada professor deu e quantas viraram matrícula. Diferença grande entre professores é treinável — vale entender o que o de cima faz.</p>'
-    + '<div class="card">'
+    + mostrar('professores', tentar('professores', ()=> '<div class="card">'
       + '<p class="note" style="margin-bottom:12px">Esta contagem inclui só a <b>Aula Experimental</b> e a <b>Aula 1 | Introdutória</b>, que são o primeiro contato. As aulas <b>2</b> e <b>3</b> da introdutória ficam de fora: são metodologia da casa para quem já matriculou, e contá-las inflaria as aulas do professor sem nenhuma matrícula possível do outro lado. Elas continuam sendo pagas — aparecem na folha, como complementares.</p>'
       + ((d.professoresSemana && d.professoresSemana.length) ? '<div class="fsep">No mês</div>' : '')
       + grafProfessores(d.professores)
@@ -2824,50 +3092,50 @@ function render(){
             + '<p class="note" style="margin-top:10px">A semana mostra ritmo, o mês mostra resultado. A conversão da semana quase sempre parece pior, e isso é esperado: a matrícula costuma sair dias depois da aula, então quem fez experimental nos últimos dias ainda não teve tempo de fechar. Compare semana com semana, não semana com mês.</p>'
           : '')
       + '</div>'
-    + blocoVendedores() + '</section>';
+    + blocoVendedores())) + '</section>';
 
   h += '<section><div class="shead"><span class="eyebrow">Planos</span><h2>Mix de planos</h2></div>'
     + '<p class="sub">Onde a base está concentrada, o que está vendendo agora e de onde a receita realmente vem. Migração entre planos aparece aqui antes de aparecer no ticket médio.</p>'
-    + blocoPlanos(d) + blocoPlanosVendidos() + '</section>';
+    + mostrar('planos', tentar('planos', ()=> blocoPlanos(d) + blocoPlanosVendidos())) + '</section>';
 
-  const hGrade = blocoGrade();
+  const hGrade = tentar('grade', blocoGrade);
   if(hGrade) h += '<section><div class="shead"><span class="eyebrow">Grade</span><h2>Aulas e professores na semana</h2></div>'
     + '<p class="sub">Quem esteve em quadra, quantas aulas deu e quanta gente apareceu. É a leitura de carga e de distribuição da grade — separada da conversão comercial.</p>'
-    + hGrade + '</section>';
+    + mostrar('grade', hGrade) + '</section>';
 
-  const hInf = (idx === s.length-1 && !d.historico) ? blocoInfantil() : '';
+  const hInf = (idx === s.length-1 && !d.historico) ? tentar('infantil', blocoInfantil) : '';
   if(hInf) h += '<section><div class="shead"><span class="eyebrow">Infantil</span><h2>Turma infantil</h2></div>'
     + '<p class="sub">Crianças ativas, por faixa e por entrada — a leitura possível sem catraca e sem chamada.</p>'
-    + hInf + '</section>';
+    + mostrar('infantil', hInf) + '</section>';
 
-  const hFolha = blocoFolha(d);
+  const hFolha = tentar('folha', ()=>blocoFolha(d));
   if(hFolha) h += '<section><div class="shead"><span class="eyebrow">Equipe</span><h2>Folha de aulas do mês</h2></div>'
     + '<p class="sub">Quantas aulas cada professor deu no mês corrente e quanto isso dá pelo valor por aula. É a conta do acerto — o que a grade registrou, não o que foi combinado.</p>'
-    + hFolha + '</section>';
+    + mostrar('folha', hFolha) + '</section>';
 
-  const hProf = blocoProfessores(d);
+  const hProf = tentar('fichas', ()=>blocoProfessores(d));
   if(hProf) h += '<section><div class="shead"><span class="eyebrow">Professores</span><h2>Ficha de cada professor</h2></div>'
     + '<p class="sub">Uma ficha por pessoa, com o mês e a semana no mesmo lugar: aulas dadas, presenças, experimentais e conversão, o que ele declarou no app e quanto fecha no acerto. É a leitura individual — a folha acima é a leitura da equipe.</p>'
-    + hProf + '</section>';
+    + mostrar('fichas', hProf) + '</section>';
 
-  const hConf = blocoConferencia(d);
+  const hConf = tentar('conferencia', ()=>blocoConferencia(d));
   if(hConf) h += '<section><div class="shead"><span class="eyebrow">Conferência</span><h2>O que o professor declarou</h2></div>'
     + '<p class="sub">O relatório que cada professor envia pelo app, ao lado do que a grade do EVO registrou. Quem bate, fecha sozinho. Quem diverge, vira uma linha para conferir antes de pagar.</p>'
-    + hConf + '</section>';
+    + mostrar('conferencia', hConf) + '</section>';
 
-  const hServ = blocoServicos(d);
+  const hServ = tentar('servicos', ()=>blocoServicos(d));
   if(hServ) h += '<section><div class="shead"><span class="eyebrow">Avulsos</span><h2>Serviços e produtos</h2></div>'
     + '<p class="sub">Tudo que a base compra fora do plano. É receita que não aparece no MRR e por isso costuma passar despercebida.</p>'
-    + hServ + '</section>';
+    + mostrar('servicos', hServ) + '</section>';
 
-  const hCaixa = blocoCaixa();
+  const hCaixa = tentar('caixa', blocoCaixa);
   if(hCaixa) h += '<section><div class="shead"><span class="eyebrow">Caixa</span><h2>Movimentação financeira do mês</h2></div>'
     + '<p class="sub">Tudo que a EVO registrou como venda no mês, separado entre plano e o resto. O recorrente contratado é outra conta: é o que a base deve pagar, não o que passou pelo caixa.</p>'
-    + hCaixa + '</section>';
+    + mostrar('caixa', hCaixa) + '</section>';
 
   h += '<section><div class="shead"><span class="eyebrow">Financeiro</span><h2>Receita e inadimplência</h2></div>'
     + '<p class="sub">Crescer em aluno sem crescer em receita é sinal de mix de plano caindo. Por isso ticket médio anda junto com número de alunos.</p>'
-    + '<div class="grid2">'
+    + mostrar('financeiro', tentar('financeiro', ()=> '<div class="grid2">'
     + '<div class="card"><h3>Receita recorrente contratada</h3><p class="note">Soma dos contratos ativos no mês.</p>'
       + grafLinha(ate.map(x=>({m:x.mes, v:x.mrr})), 'var(--saq)', 'var(--saq-soft)', v=>'R$ '+nf0.format(v/1000)+'k', 'Receita recorrente por mês') + '</div>'
     + '<div class="card"><h3>Ticket médio</h3><p class="note">Receita recorrente dividida pelos alunos ativos.</p>'
@@ -2878,16 +3146,25 @@ function render(){
     + tile('Permanência média', CTX.permanencia!=null ? nf1.format(CTX.permanencia)+' <small>meses</small>' : '—', 'mute', '<span>1 ÷ churn médio de 12 meses ('+P(CTX.churn12)+')</span>')
     + tile('Contratos por aluno', d.contratosAluno!=null ? nf2.format(d.contratosAluno) : '—', 'mute', '<span>'+N(d.contratos)+' contratos ativos</span>')
     + tile('Valor em atraso', RS(d.valorInad), sem(d.inadPct,metas.inadBom,metas.inadLim,'menor'), '<span>'+N(d.inadimplentes)+' alunos inadimplentes</span>')
-    + '</div></section>';
+    + '</div>')) + '</section>';
 
   h += '<section><div class="shead"><span class="eyebrow">Projeção</span><h2>Para onde a empresa vai</h2></div>'
     + '<p class="sub">Três cenários calibrados pelo que a academia de fato entregou em cada ano da sua história — 8 em cada 10 anos caíram entre o conservador e o otimista. Ajuste qualquer premissa e o painel recalcula.</p>'
-    + blocoCenarios(s) + '</section>';
+    + mostrar('projecao', tentar('projecao', ()=>blocoCenarios(s))) + '</section>';
 
   h += '<section><div class="shead"><span class="eyebrow">Histórico</span><h2>Todos os meses</h2>'
     + '<button class="btn btn-sm" data-acao="csv" style="margin-left:auto">Baixar CSV</button></div>'
     + '<p class="sub">Vermelho é indicador fora do alvo. A última coluna é o teste de consistência do movimento de alunos. Os meses marcados <b>rec.</b> são reconstruídos a partir dos contratos da EVO — têm base, entradas e saídas, mas não têm funil nem receita, porque esses números não existem no histórico.</p>'
-    + blocoTabela(s, metas) + '</section>';
+    + mostrar('historico', tentar('historico', ()=>blocoTabela(s, metas))) + '</section>';
+
+  /* por último a qualidade, que já sabe se alguma seção acima quebrou */
+  const hProb = blocoProblemas();
+  const secQual = (hProb || hQual)
+    ? '<section><div class="shead"><span class="eyebrow">Qualidade dos dados</span><h2>'+(hQual ? 'O que a equipe precisa lançar' : 'Problemas nos dados')+'</h2></div>'
+      + '<p class="sub">O painel não inventa número: ele lê o que está no EVO e no app. Quando um campo fica vazio, alguma leitura abaixo sai errada — aqui está o que falta, quanto e de quem é.</p>'
+      + hProb + (hQual ? mostrar('qualidade', hQual) : '') + '</section>'
+    : '';
+  h = h.replace(MARCA_QUAL, () => secQual);
 
   app.innerHTML = h;
   ligarAcoes(); ligarTips(); renderForm();
@@ -3314,19 +3591,30 @@ function mostraCarimbo(iso){
 
 (async function boot(){
   let carregado = await carregarDados();
-  if(carregado && carregado.atualizadoEm) mostraCarimbo(carregado.atualizadoEm);
+  PROBLEMAS = [];
   if(!carregado){
-    try{ const ls = localStorage.getItem('painel-sjc'); if(ls) carregado = JSON.parse(ls); }catch(e){}
+    let copia = null;
+    try{ const ls = localStorage.getItem('painel-sjc'); if(ls) copia = JSON.parse(ls); }catch(e){}
+    PROBLEMAS.push({campo:'dados.json', problema:'o arquivo não abriu (sem conexão, arquivo corrompido ou senha que não confere)',
+      secoes:[], mes:null, grave:false, efeito: copia ? 'mostra a última cópia salva neste navegador' : 'mostra só o histórico reconstruído'});
+    carregado = copia;
   }
-  if(carregado && Array.isArray(carregado.meses)){
+  /* 25/09/2026: tudo que chega passa pelo contrato de dados antes de virar estado. Campo
+     com formato errado sai do estado e a seção dele mostra "dado indisponível". */
+  if(carregado) PROBLEMAS = PROBLEMAS.concat(validarDados(carregado));
+  if(TIPOS.obj(carregado)){
+    if(TIPOS.data(carregado.atualizadoEm)) mostraCarimbo(carregado.atualizadoEm);
     /* 16/09/2026: o boot descartava detalhe, base, semana, declaracoes e valorAula que
        o dados.json traz — por isso Composicao da base, coortes, churn, grade, folha,
-       ficha e conferencia nunca apareciam no site publicado. Agora tudo passa. */
-    state = {versao:1, atualizadoEm: carregado.atualizadoEm||null, metas:{...METAS_PADRAO, ...(carregado.metas||{})}, meses:carregado.meses,
+       ficha e conferencia nunca apareciam no site publicado. Agora tudo passa.
+       25/09/2026: diagnostico também passa (o aviso de dias de grade faltando dependia dele). */
+    state = {versao:1, atualizadoEm: carregado.atualizadoEm||null, metas:{...METAS_PADRAO, ...(carregado.metas||{})},
+      meses: Array.isArray(carregado.meses) ? carregado.meses : [],
       cenarios: carregado.cenarios||null, horizonte: carregado.horizonte||12,
       teto: (carregado.teto!=null?carregado.teto:350),
       valorAula: (carregado.valorAula!=null?carregado.valorAula:30),
       detalhe: carregado.detalhe||null, base: carregado.base||null, semana: carregado.semana||null,
+      diagnostico: carregado.diagnostico||null,
       declaracoes: Array.isArray(carregado.declaracoes)?carregado.declaracoes:[]};
   }
   render();
