@@ -390,6 +390,31 @@ th{
 th:first-child,td:first-child{text-align:left; font-weight:600}
 tbody tr:last-child td{border-bottom:0}
 tbody tr:hover{background:var(--surface-2)}
+/* mapa de calor da grade (25/09/2026): linhas = horarios, colunas = seg a sab */
+.mg{--mg-base:color-mix(in srgb, var(--c2) 20%, var(--surface))}
+.mg-grid,.mg-leg,.mg-det{max-width:720px}
+.mg-grid{display:grid; grid-template-columns:46px repeat(6,minmax(0,1fr)); gap:3px; font-variant-numeric:tabular-nums}
+.mg-h{font-family:var(--display); font-size:10.5px; text-transform:uppercase; letter-spacing:.07em; color:var(--ink-3); font-weight:700; text-align:center; padding:0 0 4px}
+.mg-hr{font-size:12px; font-weight:700; color:var(--ink-2); display:flex; align-items:center}
+.mg-c{position:relative; height:40px; border-radius:6px; border:0; padding:0; margin:0; font:inherit; font-size:13px; font-weight:700;
+  display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--ink); background:var(--surface-2)}
+.mg-c.forte{color:var(--surface)}
+.mg-c.kid{background:var(--surface-3); color:var(--ink-3); font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.04em}
+.mg-c.vazio{background:transparent; border:1px dashed var(--rule); cursor:default}
+.mg-c.on{outline:2px solid var(--ink); outline-offset:1px}
+.mg-c:focus-visible{outline:2px solid var(--accent); outline-offset:1px}
+.mg-c .mg-k{position:absolute; top:4px; right:4px; width:6px; height:6px; border-radius:50%; background:var(--ink-3); box-shadow:0 0 0 1.5px var(--surface)}
+.mg-leg{display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; margin:12px 0 0; font-size:12px; color:var(--ink-2)}
+.mg-leg span{display:inline-flex; align-items:center; gap:6px}
+.mg-rampa{width:92px; height:10px; border-radius:3px}
+.mg-sw{width:14px; height:14px; border-radius:3px; background:var(--surface-3); display:inline-block}
+.mg-pt{width:6px; height:6px; border-radius:50%; background:var(--ink-3); display:inline-block}
+.mg-det{margin-top:12px; padding:12px 14px; border-radius:11px; background:var(--surface-2); font-size:13px; line-height:1.5; color:var(--ink-2); min-height:48px}
+.mg-det b{color:var(--ink)}
+.mg-det .t{display:block; font-family:var(--display); font-size:14px; color:var(--ink); margin-bottom:4px}
+.mg-det ul{margin:0; padding:0; list-style:none}
+.mg-det li + li{margin-top:6px; padding-top:6px; border-top:1px solid var(--rule)}
+@media (max-width:420px){.mg-grid{grid-template-columns:40px repeat(6,minmax(0,1fr)); gap:2px} .mg-c{height:36px; font-size:12px} .mg-c.kid{font-size:9.5px; letter-spacing:0}}
 td.bad{color:var(--crit-ink); font-weight:600}
 td.ok{color:var(--good-ink); font-weight:600}
 
@@ -1876,40 +1901,111 @@ function blocoGrade(){
   return h;
 }
 
-/* 24/09/2026: mapa de calor da grade — média de presenças por aula em cada dia × horário,
-   nas últimas ~4 semanas lidas pela Coleta. Kids, baby e mirim ficam fora (sem catraca);
-   o juvenil (13+) usa o app e entra. */
+/* 25/09/2026: mapa de calor da grade — média de alunos por aula em cada dia × horário,
+   nas últimas 8 semanas lidas pela Coleta (detalhe.mapa_grade). Linhas são horários,
+   colunas vão de segunda a sábado. Kids e baby aparecem em cinza: a presença é em ficha
+   de papel, sem registro no EVO, e não entram na média. O juvenil (13+) usa o app e entra.
+   Tocar num quadrado mostra turma, professor e média logo abaixo do mapa. */
+const MG_CEL = {};
+const MG_NOMES = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+const mgNome = s => String(s||'').toLowerCase().replace(/(^|[\s&(/-])(\S)/g, (m,a,b)=>a+b.toUpperCase())
+  .replace(/\b(De|Da|Do|Das|Dos|E)\b/g, w=>w.toLowerCase());
 function blocoMapaGrade(){
   const M = ((dados()||{}).detalhe||{}).mapa_grade;
   if(!M || !Array.isArray(M.celulas) || !M.celulas.length) return '';
-  const NOMES = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
-  const dias = [1,2,3,4,5,6,0].filter(d => M.celulas.some(c => c.dia===d));
-  const horas = [...new Set(M.celulas.map(c=>c.hora))].sort();
-  const mapa = {}; M.celulas.forEach(c => mapa[c.dia+'|'+c.hora] = c);
-  const max = Math.max(...M.celulas.map(c=>c.media||0), 1);
+  const DIAS = [1,2,3,4,5,6];
+  const CURTO = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  const cels = M.celulas.filter(c => DIAS.includes(c.dia));
+  if(!cels.length) return '';
+  const turmasDe = c => Array.isArray(c.turmas) ? c.turmas
+    : (c.modalidades||[]).map(n => ({nome:n, infantil:false, aulas:null, media:null, professor:null}));
+  const ehKid = c => c.infantil === true || (c.media == null && turmasDe(c).length > 0 && turmasDe(c).every(t => t.infantil));
+  const horas = [...new Set(cels.map(c=>c.hora))].sort();
+  const mapa = {}; cels.forEach(c => { mapa[c.dia+'|'+c.hora] = c; MG_CEL[c.dia+'|'+c.hora] = c; });
+  const adultas = cels.filter(c => !ehKid(c) && c.media != null);
+  const max = Math.max(...adultas.map(c=>c.media), 1);
+  const min = adultas.length ? Math.min(...adultas.map(c=>c.media)) : 0;
   const fmtD = s => s ? s.split('-').reverse().slice(0,2).join('/') : '—';
-  let h = '<div class="card" style="margin-top:14px"><h3>Mapa da grade: onde a turma enche e onde esvazia</h3>'
-    + '<p class="note">Média de alunos por aula em cada dia e horário, de '+fmtD(M.de)+' a '+fmtD(M.ate)+' ('+N(M.dias_lidos)+' dias de grade). Quanto mais escuro, mais cheio. '
-    + 'Kids, baby e mirim não entram: não passam na catraca ('+N(M.aulas_infantis_fora||0)+' aulas infantis fora da conta). O juvenil (13 anos ou mais) usa o app da EVO e entra.</p>'
-    + '<div class="tbl-wrap"><table style="text-align:center"><thead><tr><th>Horário</th>'+dias.map(d=>'<th>'+NOMES[d]+'</th>').join('')+'</tr></thead><tbody>'
-    + horas.map(hr => '<tr><td><b>'+esc(hr)+'</b></td>' + dias.map(d => {
-        const c = mapa[d+'|'+hr];
-        if(!c) return '<td style="color:var(--ink-3)">·</td>';
-        const pct = Math.round(Math.min(1,(c.media||0)/max)*70)+8;
-        const tip = esc('<b>'+NOMES[d]+' '+hr+'</b><br>'+nf1.format(c.media||0)+' por aula · '+N(c.aulas)+' aulas'+(c.ocupacao!=null?' · '+P(c.ocupacao)+' da capacidade':'')+'<br>'+(c.modalidades||[]).join(', '));
-        return '<td data-tip="'+tip+'" style="background:color-mix(in srgb, var(--c2) '+pct+'%, transparent);'+(pct>45?'color:#fff;':'')+'font-weight:600">'+nf1.format(c.media||0)+'</td>';
-      }).join('') + '</tr>').join('')
-    + '</tbody></table></div>';
-  const validas = M.celulas.filter(c => c.aulas >= 2 && c.media!=null);
+  const sem = M.semanas || 8;
+
+  let grade = '<div class="mg-grid" role="grid" aria-label="Média de alunos por aula, por dia e horário">'
+    + '<div></div>' + DIAS.map(d=>'<div class="mg-h">'+CURTO[d]+'</div>').join('');
+  for(const hr of horas){
+    grade += '<div class="mg-hr">'+esc(hr)+'</div>';
+    for(const d of DIAS){
+      const c = mapa[d+'|'+hr];
+      const k = d+'|'+hr;
+      if(!c){ grade += '<div class="mg-c vazio" aria-hidden="true"></div>'; continue; }
+      const rot = MG_NOMES[d]+' '+hr;
+      if(ehKid(c)){
+        const nomes = turmasDe(c).map(t=>t.nome||'').join(' ');
+        const lab = /BABY/i.test(nomes) && !/KIDS/i.test(nomes) ? 'Baby' : 'Kids';
+        grade += '<button type="button" class="mg-c kid" data-k="'+esc(k)+'" aria-label="'+esc(rot+': '+lab+', presença em ficha de papel')+'">'+lab+'</button>';
+        continue;
+      }
+      /* uma cor só, do fundo do cartão ao azul forte: quanto mais forte, mais cheia */
+      const f = Math.max(0, Math.min(1, (c.media||0)/max));
+      const pct = Math.round(f*100);
+      const temKid = turmasDe(c).some(t=>t.infantil);
+      grade += '<button type="button" class="mg-c'+(pct>=52?' forte':'')+'" data-k="'+esc(k)+'"'
+        + ' style="background:color-mix(in srgb, var(--c3) '+pct+'%, var(--mg-base))"'
+        + ' aria-label="'+esc(rot+': '+nf1.format(c.media||0)+' alunos por aula')+'">'
+        + nf1.format(c.media||0) + (temKid?'<i class="mg-k"></i>':'') + '</button>';
+    }
+  }
+  grade += '</div>';
+
+  const leg = '<div class="mg-leg">'
+    + '<span>'+nf1.format(min)+' <i class="mg-rampa" style="background:linear-gradient(90deg, var(--mg-base), var(--c3))"></i> '+nf1.format(max)+' alunos por aula</span>'
+    + '<span><i class="mg-sw"></i>Kids e Baby: presença em ficha de papel, sem registro no EVO</span>'
+    + '<span><i class="mg-pt"></i>também tem aula infantil no horário</span>'
+    + '</div>';
+
+  let h = '<div class="card mg" style="margin-top:14px"><h3>Mapa da grade: onde a turma enche e onde esvazia</h3>'
+    + '<p class="note">Média de alunos por aula em cada dia e horário nas últimas '+N(sem)+' semanas ('+fmtD(M.de)+' a '+fmtD(M.ate)+'). '
+    + 'Quanto mais forte o azul, mais cheia a aula. Kids e Baby ficam em cinza e fora da média. O juvenil usa o app da EVO e entra normalmente.</p>'
+    + grade + leg
+    + '<div class="mg-det" aria-live="polite">Toque num quadrado para ver a turma, o professor e a média.</div>';
+
+  const validas = adultas.filter(c => c.aulas >= Math.max(2, Math.round(sem/2)));
   if(validas.length >= 6){
     const ord = [...validas].sort((a,b)=>b.media-a.media);
-    const rot = c => NOMES[c.dia]+' '+c.hora+' ('+nf1.format(c.media)+')';
-    h += '<p class="note" style="margin-top:12px"><b>Mais cheios:</b> '+ord.slice(0,3).map(rot).join(', ')
+    const rot = c => CURTO[c.dia]+' '+c.hora+' ('+nf1.format(c.media)+')';
+    h += '<p class="note" style="margin:12px 0 0"><b>Mais cheios:</b> '+ord.slice(0,3).map(rot).join(', ')
       + '. <b>Mais vazios:</b> '+ord.slice(-3).reverse().map(rot).join(', ')
       + '. Horário vazio repetido semana após semana é candidato a mudar de dia, de nível ou de professor antes de sair da grade.</p>';
   }
   return h + '</div>';
 }
+function mgDetalhe(c){
+  const sem = (((dados()||{}).detalhe||{}).mapa_grade||{}).semanas || 8;
+  const turmas = Array.isArray(c.turmas) ? c.turmas : (c.modalidades||[]).map(n=>({nome:n}));
+  const linha = t => {
+    const prof = t.professor ? ' · prof. '+esc(mgNome(t.professor)) : '';
+    const outros = (t.professores||[]).slice(1);
+    const extra = outros.length ? ' <span style="color:var(--ink-3)">(também deu aula: '+outros.map(p=>esc(mgNome(p))).join(', ')+')</span>' : '';
+    const qtd = t.aulas!=null ? N(t.aulas)+(t.aulas===1?' aula':' aulas')+' em '+N(sem)+' semanas' : '';
+    const med = t.infantil
+      ? 'presença em ficha de papel, sem registro no EVO'
+      : (t.media!=null ? '<b>'+nf1.format(t.media)+'</b> alunos por aula' : '');
+    return '<li><b>'+esc(mgNome(t.nome))+'</b>'+prof+extra+'<br>'+[med, qtd].filter(Boolean).join(' · ')+'</li>';
+  };
+  const adultas = turmas.filter(t=>!t.infantil);
+  const media = adultas.length > 1 && c.media!=null
+    ? '<p style="margin:8px 0 0">Média do horário, somando as turmas: <b>'+nf1.format(c.media)+'</b> alunos por aula.</p>' : '';
+  const poucas = !c.infantil && c.aulas!=null && c.aulas < Math.round(sem/2)
+    ? '<p style="margin:8px 0 0;color:var(--ink-3)">Poucas aulas nesse horário no período: é aula eventual, a média pesa pouco.</p>' : '';
+  return '<span class="t">'+MG_NOMES[c.dia]+' · '+esc(c.hora)+'</span><ul>'+turmas.map(linha).join('')+'</ul>'+media+poucas;
+}
+document.addEventListener('click', ev=>{
+  const b = ev.target && ev.target.closest ? ev.target.closest('.mg-c[data-k]') : null;
+  if(!b) return;
+  const c = MG_CEL[b.getAttribute('data-k')];
+  const box = b.closest('.mg'); if(!c || !box) return;
+  box.querySelectorAll('.mg-c.on').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');
+  const det = box.querySelector('.mg-det'); if(det) det.innerHTML = mgDetalhe(c);
+});
 
 function blocoPlanos(d){
   const ps = planosDoMes(d);
