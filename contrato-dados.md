@@ -66,6 +66,8 @@ lançados à mão), mas o que vier precisa ter o formato certo.
 | `planos[].sem_valor` | número | não | Mix de planos |
 | `servicos` | lista | não | Serviços e produtos |
 | `produtos` | lista | não | Serviços e produtos |
+| `vendas_novas` | número | não por enquanto (vira obrigatório quando a Coleta mandar) | Vendas do mês |
+| `vendas_renovacao` | número | não por enquanto (vira obrigatório quando a Coleta mandar) | Vendas do mês |
 
 ## Composição da base (`base`)
 
@@ -138,6 +140,13 @@ Risco, Exame, Pipeline, Grade, Infantil, Folha e Fichas.
 | `detalhe.planos_vendidos[].novas` | número | sim | Mix de planos |
 | `detalhe.planos_vendidos[].renovacoes` | número | sim | Mix de planos |
 | `detalhe.vendedores` | lista | não | Conversão por professor |
+| `detalhe.vendas_do_mes` | lista | não por enquanto | Vendas do mês |
+| `detalhe.vendas_do_mes[].aluno` | texto | sim, se a lista vier | Vendas do mês |
+| `detalhe.vendas_do_mes[].plano` | texto | sim, se a lista vier | Vendas do mês |
+| `detalhe.vendas_do_mes[].data` | data (AAAA-MM-DD) | sim, se a lista vier | Vendas do mês |
+| `detalhe.vendas_do_mes[].tipo` | `nova` ou `renovacao` | sim, se a lista vier | Vendas do mês |
+| `detalhe.vendas_do_mes[].observacao` | vazio, `retorno`, `mesmo plano`, `troca de plano` ou `contrato adicional` | não | Vendas do mês |
+| `detalhe.vendas_do_mes[].plano_anterior` | texto | não | Vendas do mês |
 | `detalhe.aulas_por_professor` | lista | sim | Grade da semana |
 | `detalhe.aulas_por_professor[].professor` | texto | sim | Grade da semana |
 | `detalhe.aulas_por_professor[].aulas` | número | sim | Grade da semana |
@@ -182,6 +191,27 @@ Risco, Exame, Pipeline, Grade, Infantil, Folha e Fichas.
 | `metas` e `metas.*` | objeto / número | não | Se vier errado, usa a meta padrão |
 | `teto`, `horizonte`, `valorAula` | número | não | Se vier errado, usa o valor padrão |
 | `cenarios` | objeto | não | Se vier errado, usa os cenários calculados |
+| `vendas_historico` | lista | não | Vendas do mês (gráfico dos meses anteriores) |
+| `vendas_historico[].mes` | mês | sim, se a lista vier | Vendas do mês |
+| `vendas_historico[].novas` | número | sim, se a lista vier | Vendas do mês |
+| `vendas_historico[].renovacao` | número | sim, se a lista vier | Vendas do mês |
+
+## Venda nova × renovação (28/09/2026)
+
+Venda é um contrato de plano vendido no mês. Ficam de fora a cobrança automática do
+plano recorrente (venda com `idSaleRecurrency`) e o VIP/cortesia (R$ 0). **Nova** é o
+primeiro contrato do aluno na escola. **Renovação** é quando o aluno já teve algum
+contrato antes, vigente ou vencido. A observação da renovação diz de que tipo ela foi:
+`retorno` (sem contrato vigente na data), `mesmo plano`, `troca de plano` (o contrato
+anterior terminou) ou `contrato adicional` (o anterior segue ativo).
+
+O número do mês vem de `meses[].vendas_novas`/`vendas_renovacao`. Um mês que não tiver
+esses campos busca o número em `vendas_historico`. O histórico fica numa lista à parte
+de propósito: gravar um mês antigo só com esses dois campos dentro de `meses[]`
+apagaria a base, as entradas e as saídas reconstruídas daquele mês. A seção só aparece
+quando algum mês tiver o dado.
+Conferências do painel: `vendas_novas` + `vendas_renovacao` precisa dar o total de itens
+de `vendas_do_mes`; se não der, aparece um alerta na seção.
 
 ## O que o n8n já confere hoje (nó "Validar formato")
 
@@ -200,3 +230,5 @@ coortes); `churn.serie_mensal`; `folha_resumo`; e os quatro objetos
 `alunos_em_risco.ativos_avaliados`, e os campos dentro dos itens das listas
 (`nome`, `aulas`, `dias`, `professor`, `presencas`, `mes` etc.).
 `mapa_grade` hoje é só aviso no n8n; no painel, se vier quebrado, só o mapa some.
+A separação de vendas ainda não é gerada pela Coleta: `mes.vendas_novas`,
+`mes.vendas_renovacao`, `detalhe.vendas_do_mes` e `vendas_historico`.

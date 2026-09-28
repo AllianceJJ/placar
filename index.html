@@ -1449,25 +1449,134 @@ function blocoPlanosVendidos(){
   const campeao = comNovas[0];
 
   let h = '<div class="tiles" style="margin-top:14px">'
-    + tile('Contratos novos no mês', N(novas), 'mute', '<span>primeira assinatura, não renovação</span>')
-    + tile('Renovações', N(renov), 'mute', '<span>cobrança recorrente do mês</span>')
-    + tile('Plano mais vendido', campeao?esc(campeao.nome):'—', 'mute', '<span>'+(campeao?N(campeao.novas)+' contratos novos':'')+'</span>')
-    + tile('Receita contratada no mês', RS(receita), 'mute', '<span>novos + renovações</span>')
+    + tile('Vendas no balcão', N(novas), 'mute', '<span>feitas na recepção — inclui ex-aluno, troca e renovação manual</span>')
+    + tile('Cobranças recorrentes', N(renov), 'mute', '<span>mensalidade automática do plano — não é venda</span>')
+    + tile('Plano mais vendido', campeao?esc(campeao.nome):'—', 'mute', '<span>'+(campeao?N(campeao.novas)+' vendas no balcão':'')+'</span>')
+    + tile('Receita contratada no mês', RS(receita), 'mute', '<span>balcão + recorrente</span>')
     + '</div>';
 
   if(comNovas.length) h += '<div class="card" style="margin-top:14px"><h3>O que está vendendo agora</h3>'
-    + '<p class="note">Só contratos novos. É a leitura de demanda do mês — diferente do mix, que mostra onde a base parou historicamente.</p>'
-    + barrasSimples(comNovas.map(x=>({nome:x.nome, v:x.novas})), v=>nf0.format(v)+' novos', 'var(--s1)')
+    + '<p class="note">Só vendas no balcão, sem a cobrança automática. É a leitura de demanda do mês — diferente do mix, que mostra onde a base parou historicamente.</p>'
+    + barrasSimples(comNovas.map(x=>({nome:x.nome, v:x.novas})), v=>nf0.format(v)+' vendas', 'var(--s1)')
     + '</div>';
 
   h += '<div class="card" style="margin-top:14px"><h3>Planos vendidos no mês</h3>'
-    + '<p class="note">Cada linha soma o que o EVO registrou como venda daquele plano no mês, separando primeira assinatura de renovação.</p>'
-    + '<div class="tbl-wrap"><table><thead><tr><th>Plano</th><th>Novos</th><th>Renovações</th><th>Total</th><th>Receita</th><th>Ticket</th></tr></thead><tbody>'
+    + '<p class="note">Cada linha soma o que o EVO registrou como venda daquele plano no mês, separando a venda no balcão da cobrança automática do plano recorrente. A separação entre venda nova e renovação fica em Vendas do mês.</p>'
+    + '<div class="tbl-wrap"><table><thead><tr><th>Plano</th><th>Balcão</th><th>Recorrente</th><th>Total</th><th>Receita</th><th>Ticket</th></tr></thead><tbody>'
     + pv.map(x=>'<tr><td>'+esc(x.nome)+'</td><td>'+(x.novas>0?'<b>'+N(x.novas)+'</b>':'—')+'</td><td>'+N(x.renovacoes)+'</td>'
         + '<td>'+N(x.vendas)+'</td><td>'+RS(x.receita)+'</td><td>'+(x.vendas>0?RS2(x.receita/x.vendas):'—')+'</td></tr>').join('')
     + '<tr style="font-weight:700;background:var(--surface-2)"><td>Total</td><td>'+N(novas)+'</td><td>'+N(renov)+'</td>'
     + '<td>'+N(novas+renov)+'</td><td>'+RS(receita)+'</td><td></td></tr>'
     + '</tbody></table></div></div>';
+  return h;
+}
+
+/* ============ vendas do mês: nova × renovação (28/09/2026) ============
+   Venda = contrato de plano vendido no mês. Fora: a cobrança automática do plano
+   recorrente e VIP/cortesia (R$ 0). Nova = primeiro contrato do aluno na escola;
+   renovação = já teve algum contrato antes, vigente ou vencido. Troca de plano e
+   contrato adicional contam como renovação, com observação para conferir.
+   O mês vem de meses[].vendas_novas/vendas_renovacao; mês que não tem esses campos
+   (os reconstruídos) busca em vendas_historico[]. A lista venda a venda
+   (detalhe.vendas_do_mes) só existe para o mês corrente. */
+const OBS_VENDA = [
+  ['retorno', 'Ex-aluno voltando', 'não tinha contrato vigente na data da venda'],
+  ['mesmo plano', 'Renovou o mesmo plano', ''],
+  ['troca de plano', 'Trocou de plano', 'o contrato anterior terminou'],
+  ['contrato adicional', 'Contrato adicional', 'o contrato anterior segue ativo']
+];
+function vendasPorMes(s){
+  const hist = {};
+  for(const x of (dados().vendas_historico || [])) if(x && x.mes) hist[x.mes] = x;
+  const porMes = {};
+  for(const m of s) porMes[m.mes] = m;
+  const out = [];
+  for(const mes of [...new Set([...Object.keys(porMes), ...Object.keys(hist)])].sort()){
+    const m = porMes[mes] || {}, h = hist[mes] || {};
+    const n = m.vendas_novas != null ? m.vendas_novas : h.novas;
+    const r = m.vendas_renovacao != null ? m.vendas_renovacao : h.renovacao;
+    if(n != null && r != null) out.push({mes, novas:n, renov:r});
+  }
+  return out;
+}
+function grafVendasMes(serie){
+  if(!serie.length) return '';
+  const W=560, H=210, ml=44, mr=14, mt=14, mb=30;
+  const max = Math.max(1, ...serie.map(x=>x.novas+x.renov));
+  const iw=W-ml-mr, ih=H-mt-mb;
+  const passoX = iw/serie.length, larg = Math.min(30, passoX*0.6);
+  let g='', barras='';
+  [max, max/2, 0].forEach(t=>{
+    const y = mt+ih - (t/max)*ih;
+    g += '<line x1="'+ml+'" x2="'+(W-mr)+'" y1="'+y.toFixed(1)+'" y2="'+y.toFixed(1)+'" stroke="'+(t===0?'var(--axis)':'var(--grid)')+'" stroke-width="1"/>';
+    g += '<text x="'+(ml-8)+'" y="'+(y+4).toFixed(1)+'" text-anchor="end" font-size="10.5" fill="var(--ink-3)">'+N(Math.round(t))+'</text>';
+  });
+  serie.forEach((x,i)=>{
+    const cx = ml + passoX*(i+0.5), tot = x.novas+x.renov;
+    const hn = x.novas/max*ih, hr = x.renov/max*ih;
+    const tip = esc('<b>'+N(tot)+' vendas</b><br>'+N(x.novas)+' novas · '+N(x.renov)+' renovações<br>'+rotuloLongo(x.mes));
+    /* nova embaixo, renovação em cima, com 2px de respiro entre as duas */
+    barras += '<rect x="'+(cx-larg/2).toFixed(1)+'" y="'+(mt+ih-hn).toFixed(1)+'" width="'+larg.toFixed(1)+'" height="'+Math.max(0,hn).toFixed(1)+'" rx="3" fill="var(--saq)" data-tip="'+tip+'"/>';
+    if(hr > 0) barras += '<rect x="'+(cx-larg/2).toFixed(1)+'" y="'+(mt+ih-hn-hr).toFixed(1)+'" width="'+larg.toFixed(1)+'" height="'+Math.max(0,hr-(hn>0?2:0)).toFixed(1)+'" rx="3" fill="var(--s1)" data-tip="'+tip+'"/>';
+    const pass = Math.ceil(serie.length/7), ult = serie.length-1;
+    if(i===ult || (i%pass===0 && (ult-i) >= pass*0.6))
+      barras += '<text x="'+cx.toFixed(1)+'" y="'+(H-8)+'" text-anchor="middle" font-size="10.5" fill="var(--ink-3)">'+rotulo(x.mes)+'</text>';
+  });
+  return '<div class="legend"><span><i style="background:var(--saq)"></i>Venda nova</span><span><i style="background:var(--s1)"></i>Renovação</span></div>'
+    + '<div class="chartbox"><svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Vendas por mês: novas e renovações">'+g+barras+'</svg></div>';
+}
+function blocoVendas(d, s, ultimo){
+  const todas = vendasPorMes(s);
+  if(!todas.length) return '';
+  const i = todas.findIndex(x=>x.mes===d.mes);
+  const v = i >= 0 ? todas[i] : null, va = i > 0 ? todas[i-1] : null;
+  let h = '';
+  if(v){
+    const tot = v.novas + v.renov, tA = va ? va.novas + va.renov : null;
+    h += '<div class="tiles">'
+      + tile('Vendas novas', N(v.novas), 'mute', '<span>'+P(tot ? v.novas/tot*100 : null)+' do total · primeiro contrato na escola</span>')
+      + tile('Renovações', N(v.renov), 'mute', '<span>'+P(tot ? v.renov/tot*100 : null)+' do total · já teve contrato antes</span>')
+      + tile('Total de vendas', N(tot), 'mute', delta(tot, tA, N, true))
+      + '</div>';
+  } else {
+    h += '<div class="empty" style="padding:22px">Sem a separação de vendas para '+rotuloLongo(d.mes)+'.</div>';
+  }
+
+  const ate = todas.filter(x=>x.mes <= d.mes).slice(-24);
+  if(ate.length) h += '<div class="card" style="margin-top:14px"><h3>Vendas por mês</h3>'
+    + '<p class="note">Cada barra é o total de contratos vendidos no mês. Verde é venda nova, azul é renovação. Passe o mouse ou toque na barra para ver os números.</p>'
+    + grafVendasMes(ate) + '</div>';
+
+  const lista = ultimo ? (((dados()||{}).detalhe||{}).vendas_do_mes) : null;
+  if(v && Array.isArray(lista)){
+    const renov = lista.filter(x=>x.tipo==='renovacao');
+    if(lista.length !== v.novas + v.renov)
+      h += '<div class="alerta" style="margin-top:14px"><b>A lista de vendas não bate com o total.</b> '
+        + 'O mês soma '+N(v.novas+v.renov)+' vendas, mas a lista venda a venda tem '+N(lista.length)+'. Vale conferir a Coleta no n8n.</div>';
+    const itens = OBS_VENDA.map(([k, nome])=>({nome, v:renov.filter(x=>x.observacao===k).length}));
+    const semObs = renov.filter(x=>!OBS_VENDA.some(([k])=>k===x.observacao)).length;
+    if(semObs) itens.push({nome:'Sem observação', v:semObs});
+    if(renov.length) h += '<div class="card" style="margin-top:14px"><h3>De onde vêm as renovações</h3>'
+      + '<p class="note">Quem já tinha tido contrato antes e comprou de novo neste mês.</p>'
+      + barrasSimples(itens, n=>nf0.format(n), 'var(--s1)') + '</div>';
+
+    const conferir = renov.filter(x=>x.observacao==='troca de plano' || x.observacao==='contrato adicional')
+      .sort((a,b)=>String(a.data).localeCompare(String(b.data)));
+    if(conferir.length) h += '<div class="card" style="margin-top:14px"><h3>Renovações para conferir</h3>'
+      + '<p class="note">Alunos com contrato vigente que trocaram de plano ou compraram mais um. Contam como renovação. Confira se a troca ou o contrato a mais aconteceu de fato.</p>'
+      + '<div class="tbl-wrap"><table><thead><tr><th>Aluno</th><th>Data</th><th class="wrap">Plano anterior</th><th class="wrap">Plano novo</th><th>Observação</th></tr></thead><tbody>'
+      + conferir.map(x=>'<tr><td>'+esc(x.aluno)+'</td><td>'+dataBr(x.data)+'</td><td class="wrap">'+(x.plano_anterior?esc(x.plano_anterior):'—')+'</td>'
+          + '<td class="wrap">'+esc(x.plano)+'</td><td>'+(x.observacao==='troca de plano'?'Trocou de plano':'Contrato adicional')+'</td></tr>').join('')
+      + '</tbody></table></div></div>';
+
+    const rotObs = k => { const o = OBS_VENDA.find(([c])=>c===k); return o ? o[1] : ''; };
+    if(lista.length) h += '<details class="card" style="margin-top:14px"><summary><b>Todas as vendas do mês ('+N(lista.length)+')</b></summary>'
+      + '<div class="tbl-wrap" style="margin-top:10px"><table><thead><tr><th>Data</th><th>Aluno</th><th class="wrap">Plano</th><th>Tipo</th><th>Observação</th></tr></thead><tbody>'
+      + [...lista].sort((a,b)=>String(a.data).localeCompare(String(b.data)))
+          .map(x=>'<tr><td>'+dataBr(x.data)+'</td><td>'+esc(x.aluno)+'</td><td class="wrap">'+esc(x.plano)+'</td>'
+            + '<td>'+(x.tipo==='nova'?'<b>Nova</b>':'Renovação')+'</td><td>'+esc(rotObs(x.observacao))+'</td></tr>').join('')
+      + '</tbody></table></div></details>';
+  }
   return h;
 }
 
@@ -2035,7 +2144,7 @@ function blocoPlanos(d){
   const normPl = n => String(n||'').replace(/\s*\(.*?\)\s*/g,' ').replace(/\s+/g,' ').trim().toUpperCase();
   const soNovos = Array.isArray(pvLista) && pvLista.length > 0;
   if(soNovos){ const mp = {}; for(const x of pvLista){ mp[normPl(x.nome)] = (mp[normPl(x.nome)]||0) + (+x.novas||0); } for(const p of ps){ p.vendas = mp[normPl(p.nome)] || 0; } }
-  const rotV = soNovos ? 'contratos novos' : 'vendas';
+  const rotV = soNovos ? 'vendas no balcão' : 'vendas';
   const totAl = ps.reduce((s,p)=>s+p.alunos,0);
   const totVe = ps.reduce((s,p)=>s+p.vendas,0);
   const totRe = ps.reduce((s,p)=>s+p.receita,0);
@@ -2059,7 +2168,7 @@ function blocoPlanos(d){
   h += '<div class="grid2" style="margin-top:14px">'
     + '<div class="card"><h3>Onde estão os alunos</h3><p class="note">Quantos alunos cada plano tem hoje e quanto isso representa da base.</p>'
       + barrasPlano(ps, 'alunos', v=>nf0.format(v), 'var(--s1)') + '</div>'
-    + '<div class="card"><h3>O que vendeu no mês</h3><p class="note">'+(soNovos ? 'Só contratos novos (primeira assinatura). Renovação automática não é venda — está separada mais abaixo.' : 'Vendas fechadas por plano no período — mostra para onde a base está migrando.')+'</p>'
+    + '<div class="card"><h3>O que vendeu no mês</h3><p class="note">'+(soNovos ? 'Só vendas no balcão. A cobrança automática do plano recorrente não é venda e fica separada mais abaixo.' : 'Vendas fechadas por plano no período — mostra para onde a base está migrando.')+'</p>'
       + barrasPlano(ps, 'vendas', v=>nf0.format(v), 'var(--saq)') + '</div>'
     + '</div>';
 
@@ -2070,7 +2179,7 @@ function blocoPlanos(d){
   /* tabela */
   const ord = [...comTicket].sort((a,b)=>b.alunos-a.alunos);
   h += '<div class="tbl-wrap" style="margin-top:14px"><table><thead><tr>'
-    + '<th>Plano</th><th>Alunos</th><th>% da base</th><th>'+(soNovos?'Novos no mês':'Vendas no mês')+'</th><th>Receita</th><th>% da receita</th><th>Ticket do plano</th><th>Sem valor</th>'
+    + '<th>Plano</th><th>Alunos</th><th>% da base</th><th>'+(soNovos?'Balcão no mês':'Vendas no mês')+'</th><th>Receita</th><th>% da receita</th><th>Ticket do plano</th><th>Sem valor</th>'
     + '</tr></thead><tbody>'
     + ord.map(p=>'<tr><td>'+esc(p.nome)+'</td>'
       + '<td>'+N(p.alunos)+'</td>'
@@ -2733,7 +2842,7 @@ const SECOES = {
   topo:'Aviso de dados velhos', placar:'Placar', qualidade:'Qualidade dos dados', base:'Composição da base',
   movimento:'Movimento de alunos', coortes:'Quem entra, fica?', churn:'Mapeamento de cancelamento',
   risco:'Alunos em risco agora', exame:'Prontos para o exame de faixa', funil:'Funil da aula experimental',
-  pipeline:'Pipeline de leads', professores:'Conversão por professor', planos:'Mix de planos',
+  pipeline:'Pipeline de leads', professores:'Conversão por professor', vendas:'Vendas do mês', planos:'Mix de planos',
   grade:'Aulas e professores na semana', mapa:'Mapa da grade', infantil:'Turma infantil',
   folha:'Folha de aulas do mês', fichas:'Ficha de cada professor', conferencia:'O que o professor declarou',
   servicos:'Serviços e produtos', caixa:'Movimentação financeira do mês', financeiro:'Receita e inadimplência',
@@ -2781,6 +2890,10 @@ const CONTRATO = [
   ['detalhe.planos_vendidos', 'lista', 'planos'], ['detalhe.planos_vendidos[].nome', 'texto', 'planos'],
   ['detalhe.planos_vendidos[].novas', 'num', 'planos'], ['detalhe.planos_vendidos[].renovacoes', 'num', 'planos'],
   ['detalhe.vendedores', 'lista?', 'professores'],
+  ['detalhe.vendas_do_mes', 'lista?', 'vendas'], ['detalhe.vendas_do_mes[].aluno', 'texto', 'vendas'],
+  ['detalhe.vendas_do_mes[].plano', 'texto', 'vendas'], ['detalhe.vendas_do_mes[].data', 'data', 'vendas'],
+  ['detalhe.vendas_do_mes[].tipo', 'tipovenda', 'vendas'], ['detalhe.vendas_do_mes[].observacao', 'obsvenda?', 'vendas'],
+  ['detalhe.vendas_do_mes[].plano_anterior', 'texto?', 'vendas'],
   ['detalhe.aulas_por_professor', 'lista', 'grade'], ['detalhe.aulas_por_professor[].professor', 'texto', 'grade'],
   ['detalhe.aulas_por_professor[].aulas', 'num', 'grade'], ['detalhe.aulas_por_professor[].presencas', 'num', 'grade'],
   ['detalhe.aulas_por_professor[].modalidades', 'lista?', 'grade'],
@@ -2802,7 +2915,9 @@ const CONTRATO = [
   ['diagnostico', 'obj?', 'folha'], ['diagnostico.dias_de_grade_pedidos', 'num?', 'folha'],
   ['diagnostico.dias_de_grade_lidos', 'num?', 'folha'],
   ['declaracoes', 'lista?', 'conferencia'], ['declaracoes[].professor', 'texto', 'conferencia'],
-  ['declaracoes[].periodo', 'mes', 'conferencia']
+  ['declaracoes[].periodo', 'mes', 'conferencia'],
+  ['vendas_historico', 'lista?', 'vendas'], ['vendas_historico[].mes', 'mes', 'vendas'],
+  ['vendas_historico[].novas', 'num', 'vendas'], ['vendas_historico[].renovacao', 'num', 'vendas']
 ];
 /* Por mês. No mês mais recente vale o obrigatório; nos meses anteriores (lançados à mão
    ou de antes de um campo existir) tudo pode faltar, mas o que vier tem de ter o formato. */
@@ -2821,7 +2936,9 @@ const CONTRATO_MES = [
   ['planos', 'lista', 'planos'], ['planos[].nome', 'texto', 'planos'],
   ['planos[].alunos', 'num', 'planos'], ['planos[].receita', 'num', 'planos'],
   ['planos[].vendas', 'num?', 'planos'], ['planos[].sem_valor', 'num?', 'planos'],
-  ['servicos', 'lista?', 'servicos'], ['produtos', 'lista?', 'servicos']
+  ['servicos', 'lista?', 'servicos'], ['produtos', 'lista?', 'servicos'],
+  /* opcional até a Coleta mandar; depois disso, passar para 'num' */
+  ['vendas_novas', 'num?', 'vendas'], ['vendas_renovacao', 'num?', 'vendas']
 ];
 
 const TIPOS = {
@@ -2831,9 +2948,12 @@ const TIPOS = {
   lista: v => Array.isArray(v),
   obj:   v => !!v && typeof v === 'object' && !Array.isArray(v),
   mes:   v => typeof v === 'string' && /^\d{4}-(0[1-9]|1[0-2])$/.test(v),
-  data:  v => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test(v) && !isNaN(Date.parse(v))
+  data:  v => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test(v) && !isNaN(Date.parse(v)),
+  tipovenda: v => v === 'nova' || v === 'renovacao',
+  obsvenda:  v => v === '' || OBS_VENDA.some(([k]) => k === v)
 };
-const NOME_TIPO = {num:'número', texto:'texto', bool:'sim/não', lista:'lista', obj:'objeto', mes:'mês AAAA-MM', data:'data'};
+const NOME_TIPO = {num:'número', texto:'texto', bool:'sim/não', lista:'lista', obj:'objeto', mes:'mês AAAA-MM', data:'data',
+  tipovenda:'"nova" ou "renovacao"', obsvenda:'"", "retorno", "mesmo plano", "troca de plano" ou "contrato adicional"'};
 const comoVeio = v => v === null ? 'vazio (null)' : Array.isArray(v) ? 'lista'
   : typeof v === 'number' ? 'número inválido'
   : typeof v === 'string' ? 'texto "'+(v.length > 24 ? v.slice(0,24)+'…' : v)+'"'
@@ -3093,6 +3213,12 @@ function renderPainel(){
           : '')
       + '</div>'
     + blocoVendedores())) + '</section>';
+
+  /* só aparece quando a Coleta começar a mandar a separação */
+  const hVendas = tentar('vendas', ()=>blocoVendas(d, s, idx === s.length-1));
+  if(hVendas) h += '<section><div class="shead"><span class="eyebrow">Comercial</span><h2>Vendas do mês</h2></div>'
+    + '<p class="sub">Contratos vendidos no mês, separando quem assinou pela primeira vez na escola de quem já tinha tido contrato antes. A cobrança automática do plano recorrente e o VIP/cortesia não entram.</p>'
+    + mostrar('vendas', hVendas) + '</section>';
 
   h += '<section><div class="shead"><span class="eyebrow">Planos</span><h2>Mix de planos</h2></div>'
     + '<p class="sub">Onde a base está concentrada, o que está vendendo agora e de onde a receita realmente vem. Migração entre planos aparece aqui antes de aparecer no ticket médio.</p>'
@@ -3607,7 +3733,8 @@ function mostraCarimbo(iso){
     /* 16/09/2026: o boot descartava detalhe, base, semana, declaracoes e valorAula que
        o dados.json traz — por isso Composicao da base, coortes, churn, grade, folha,
        ficha e conferencia nunca apareciam no site publicado. Agora tudo passa.
-       25/09/2026: diagnostico também passa (o aviso de dias de grade faltando dependia dele). */
+       25/09/2026: diagnostico também passa (o aviso de dias de grade faltando dependia dele).
+       28/09/2026: vendas_historico também (histórico de venda nova × renovação). */
     state = {versao:1, atualizadoEm: carregado.atualizadoEm||null, metas:{...METAS_PADRAO, ...(carregado.metas||{})},
       meses: Array.isArray(carregado.meses) ? carregado.meses : [],
       cenarios: carregado.cenarios||null, horizonte: carregado.horizonte||12,
@@ -3615,6 +3742,7 @@ function mostraCarimbo(iso){
       valorAula: (carregado.valorAula!=null?carregado.valorAula:30),
       detalhe: carregado.detalhe||null, base: carregado.base||null, semana: carregado.semana||null,
       diagnostico: carregado.diagnostico||null,
+      vendas_historico: Array.isArray(carregado.vendas_historico)?carregado.vendas_historico:null,
       declaracoes: Array.isArray(carregado.declaracoes)?carregado.declaracoes:[]};
   }
   render();
