@@ -642,7 +642,9 @@ function derivar(m, anterior){
   d.matriculasFunil = (m.matriculasExp!=null) ? m.matriculasExp : (m.matriculas||0);
   d.convExp   = m.realizadas>0 ? (d.matriculasFunil||0)/m.realizadas*100 : null;
   /* 16/09/2026: a EVO tira o lead de /v1/prospects quando ele converte. leads_evo soma os
-     convertidos do mes aos abertos, como o Gerencial > Oportunidades conta. */
+     convertidos aos abertos, como o Gerencial > Oportunidades conta.
+     06/10/2026: a Coleta passou a contar o convertido pela data de CADASTRO do lead (antes
+     entrava todo convertido do mes, inclusive quem tinha oportunidade de meses anteriores). */
   d.leadsBase = (m.leads_evo!=null) ? m.leads_evo : m.leads;
   d.convLead  = d.leadsBase>0 ? (m.agendadas||0)/d.leadsBase*100 : null;
   d.convTotal = d.leadsBase>0 ? (d.matriculasFunil||0)/d.leadsBase*100 : null;
@@ -926,6 +928,16 @@ function blocoFunil(d, metas){
   });
   html += '</div>';
 
+  /* 06/10/2026: a mesma régua da tela Gerencial > Oportunidades da EVO, para quem confere lá. */
+  if(d.leads_evo!=null && d.leads_convertidos!=null && +d.leads_evo>0){
+    const op = ((dados()||{}).detalhe||{}).oportunidades_do_mes || {};
+    html += '<p class="note" style="margin-top:12px">Na régua da EVO (Gerencial &gt; Oportunidades): <b>'+N(d.leads_evo)+'</b> oportunidades cadastradas no mês, '
+      + '<b>'+N(d.leads_convertidos)+'</b> já convertidas (<b>'+P(d.leads_convertidos/d.leads_evo*100)+'</b>). '
+      + 'A EVO conta conversão sem venda; a régua acima só conta matrícula com contrato.'
+      + (op.sem_lead_conhecido ? ' '+N(op.sem_lead_conhecido)+' convertido'+(op.sem_lead_conhecido>1?'s':'')+' sem lead registrado pela coleta entra'+(op.sem_lead_conhecido>1?'m':'')+' pela data da matrícula.' : '')
+      + '</p>';
+  }
+
   const fd = ((dados()||{}).detalhe||{}).funil_diagnostico;
 
   if(fd && fd.no_mes){
@@ -967,7 +979,7 @@ function blocoFunil(d, metas){
       + '. A conversão da experimental já conta essas pessoas: a janela é de 45 dias antes da matrícula, não o mês fechado.</p>';
   }
   const dupl = ((dados()||{}).detalhe||{}).leads_duplicados || [];
-  if(dupl.length) html += '<p class="note" style="margin-top:12px"><b>'+N(dupl.length)+' lead'+(dupl.length>1?'s':'')+' cadastrado'+(dupl.length>1?'s':'')+' em dobro</b> (mesmo telefone e mesmo nome): '
+  if(dupl.length) html += '<p class="note" style="margin-top:12px"><b>'+N(dupl.length)+' lead'+(dupl.length>1?'s':'')+' cadastrado'+(dupl.length>1?'s':'')+' em dobro</b> (mesmo telefone e mesmo nome, ou oportunidade aberta de quem já virou aluno): '
     + dupl.map(g => g.leads.map(l => esc(l.nome)).join(' = ')).join('; ')
     + '. Cadastro repetido infla o topo do funil e derruba a conversão — vale unificar na recepção.</p>';
 
@@ -1099,6 +1111,11 @@ function blocoPipeline(){
     + '</div>';
   if(semEtapa/Math.max(1,pp.abertos) > 0.5) html += '<div class="alerta" style="margin-top:14px"><b>'+P(semEtapa/pp.abertos*100)+' dos leads abertos estão sem etapa.</b> '
     + 'O pipeline só vira ferramenta quando a equipe marca a etapa no EVO a cada contato. Até lá, a lista abaixo diz quem está parado, mas não diz por quê.</div>';
+  /* 06/10/2026: "Não deu certo" é lead perdido e oportunidade de quem já é aluno é cópia — os dois saíram da conta. */
+  if(pp.perdidos || pp.ja_alunos) html += '<p class="note" style="margin-top:12px">Fora da conta acima: '
+    + [pp.perdidos ? '<b>'+N(pp.perdidos)+'</b> marcado'+(pp.perdidos>1?'s':'')+' como "Não deu certo"' : '',
+       pp.ja_alunos ? '<b>'+N(pp.ja_alunos)+'</b> que já '+(pp.ja_alunos>1?'são alunos':'é aluno')+' por outra oportunidade (vale fechar a cópia no EVO)' : ''].filter(Boolean).join(' e ')
+    + '.</p>';
   const top = pp.lista.slice(0, 30);
   html += '<div class="card" style="margin-top:14px"><h3>Quem está parado, do mais antigo para o mais novo</h3>'
     + '<p class="note">Dias desde o cadastro. "Experimentais" é quantas aulas a pessoa já fez sem fechar; "próxima aula" é o que já está na agenda.</p>'
@@ -2869,6 +2886,7 @@ const CONTRATO = [
   ['detalhe.funil_diagnostico', 'obj?', 'funil'], ['detalhe.funil_diagnostico.no_mes', 'obj?', 'funil'],
   ['detalhe.funil_45', 'obj?', 'funil'], ['detalhe.funil_45.com_experimental', 'lista?', 'funil'],
   ['detalhe.leads_duplicados', 'lista?', 'funil'],
+  ['detalhe.leads_ja_alunos', 'lista?', 'pipeline'], ['detalhe.oportunidades_do_mes', 'obj?', 'funil'],
   ['detalhe.coortes_entrada', 'lista', 'coortes'], ['detalhe.coortes_entrada[].mes', 'mes', 'coortes'],
   ['detalhe.coortes_entrada[].entraram', 'num', 'coortes'], ['detalhe.coortes_entrada[].sobreviveram', 'num', 'coortes'],
   ['detalhe.coorte_resumo', 'obj', 'coortes'],
@@ -2887,6 +2905,7 @@ const CONTRATO = [
   ['detalhe.pipeline', 'obj', 'pipeline'], ['detalhe.pipeline.abertos', 'num', 'pipeline'],
   ['detalhe.pipeline.lista', 'lista', 'pipeline'], ['detalhe.pipeline.lista[].nome', 'texto', 'pipeline'],
   ['detalhe.pipeline.lista[].dias', 'num', 'pipeline'], ['detalhe.pipeline.por_etapa', 'obj?', 'pipeline'],
+  ['detalhe.pipeline.perdidos', 'num?', 'pipeline'], ['detalhe.pipeline.ja_alunos', 'num?', 'pipeline'],
   ['detalhe.planos_vendidos', 'lista', 'planos'], ['detalhe.planos_vendidos[].nome', 'texto', 'planos'],
   ['detalhe.planos_vendidos[].novas', 'num', 'planos'], ['detalhe.planos_vendidos[].renovacoes', 'num', 'planos'],
   ['detalhe.vendedores', 'lista?', 'professores'],
@@ -2927,7 +2946,7 @@ const CONTRATO_MES = [
   ['cancelamentos', 'num', 'placar movimento'], ['alunosInicio', 'num?', 'placar movimento'],
   ['mrr', 'num', 'placar financeiro'], ['contratos', 'num', 'financeiro'],
   ['inadimplentes', 'num', 'placar financeiro'], ['valorInad', 'num', 'placar financeiro'],
-  ['leads', 'num', 'funil'], ['leads_evo', 'num?', 'funil'], ['agendadas', 'num', 'funil'],
+  ['leads', 'num', 'funil'], ['leads_evo', 'num?', 'funil'], ['leads_convertidos', 'num?', 'funil'], ['agendadas', 'num', 'funil'],
   ['realizadas', 'num', 'funil'], ['matriculas', 'num', 'funil'], ['matriculasExp', 'num?', 'funil'],
   ['invMkt', 'num?', 'funil'],
   ['professores', 'lista', 'professores'], ['professores[].nome', 'texto', 'professores'],

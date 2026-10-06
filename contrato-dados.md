@@ -47,6 +47,7 @@ lançados à mão), mas o que vier precisa ter o formato certo.
 | `valorInad` | número | sim | Placar, Receita |
 | `leads` | número | sim | Funil |
 | `leads_evo` | número | não | Funil |
+| `leads_convertidos` | número | não | Funil (régua da EVO) |
 | `agendadas` | número | sim | Funil |
 | `realizadas` | número | sim | Funil |
 | `matriculas` | número | sim | Funil |
@@ -101,6 +102,8 @@ Risco, Exame, Pipeline, Grade, Infantil, Folha e Fichas.
 | `detalhe.funil_45` | objeto | não | Funil |
 | `detalhe.funil_45.com_experimental` | lista | não | Funil |
 | `detalhe.leads_duplicados` | lista | não | Funil |
+| `detalhe.leads_ja_alunos` | lista | não | Pipeline |
+| `detalhe.oportunidades_do_mes` | objeto | não | Funil (régua da EVO) |
 | `detalhe.coortes_entrada` | lista | sim | Quem entra, fica? |
 | `detalhe.coortes_entrada[].mes` | mês | sim | Quem entra, fica? |
 | `detalhe.coortes_entrada[].entraram` | número | sim | Quem entra, fica? |
@@ -135,6 +138,8 @@ Risco, Exame, Pipeline, Grade, Infantil, Folha e Fichas.
 | `detalhe.pipeline.lista[].nome` | texto | sim | Pipeline |
 | `detalhe.pipeline.lista[].dias` | número | sim | Pipeline |
 | `detalhe.pipeline.por_etapa` | objeto | não | Pipeline |
+| `detalhe.pipeline.perdidos` | número | não | Pipeline |
+| `detalhe.pipeline.ja_alunos` | número | não | Pipeline |
 | `detalhe.planos_vendidos` | lista | sim | Mix de planos |
 | `detalhe.planos_vendidos[].nome` | texto | sim | Mix de planos |
 | `detalhe.planos_vendidos[].novas` | número | sim | Mix de planos |
@@ -212,6 +217,20 @@ apagaria a base, as entradas e as saídas reconstruídas daquele mês. A seção
 quando algum mês tiver o dado.
 Conferências do painel: `vendas_novas` + `vendas_renovacao` precisa dar o total de itens
 de `vendas_do_mes`; se não der, aparece um alerta na seção.
+
+## Oportunidades como a EVO conta (06/10/2026)
+
+Conferido contra Gerencial > Oportunidades. `meses[].leads` são os leads **abertos**
+cadastrados no mês (a API tira o lead de `/v1/prospects` quando ele converte).
+`leads_evo` = abertos + convertidos cujo **lead foi cadastrado no mês** — a mesma conta
+da aba "Cadastro/conversão de oportunidade". `leads_convertidos` é a segunda parte.
+A data de cadastro e o canal de quem converteu vêm da Data Table "Leads vistos", que a
+Coleta grava a cada execução; quem converteu antes de a coleta ver o lead entra pela
+data da matrícula e com canal "Sem registro do lead".
+`pipeline.abertos` não conta mais "NÃO DEU CERTO" (`pipeline.perdidos`) nem oportunidade
+aberta de quem já virou aluno por outra oportunidade (`pipeline.ja_alunos`, com a lista
+em `detalhe.leads_ja_alunos`). `matriculasExp` só conta quem entrou como novo (contrato
+ou plano comprado): conversão sem venda vai para `funil_45.convertidos_sem_contrato`.
 
 ## O que o n8n já confere hoje (nó "Validar formato")
 
