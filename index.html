@@ -1822,6 +1822,11 @@ function blocoFolha(d){
           + (divergemFolha.length===1?' diverge':' divergem')+'. A divergência é guia de processo, não trava o acerto: '
           + 'a diferença quase sempre é aula dada sem lançamento na grade, ou lançada no nome errado. Vale olhar o padrão ao longo dos meses, não o caso isolado.</p>'
         : '<p class="note" style="margin-top:10px">Nenhum relatório de professor recebido para este mês ainda. Quando chegarem, as colunas <b>declarado</b> e <b>diferença</b> se preenchem sozinhas.</p>')
+    /* 07/10/2026: aula individual passada que ninguém finalizou no EVO não entra na folha. */
+    + (function(){ const nf = (det.folha_resumo||{}).lista_nao_finalizadas; if(!Array.isArray(nf) || !nf.length) return '';
+        return '<p class="note" style="margin-top:10px"><b>'+N(nf.length)+' aula'+(nf.length>1?'s individuais':' individual')+' fora da folha</b> por não '+(nf.length>1?'terem sido finalizadas':'ter sido finalizada')+' no EVO: '
+          + nf.map(x=>esc(String(x.data||'').slice(8,10)+'/'+String(x.data||'').slice(5,7))+' '+esc(String(x.professor||'').split(' ')[0])+' ('+esc(x.atividade||'')+')').join('; ')
+          + '. Se a aula aconteceu, finalize no EVO: no mês em curso ela entra na próxima coleta; em mês já fechado, o acerto é na mão.</p>'; })()
     + '</div>';
 
   /* "ALLIANCE JIU JITSU" era o Alessandro antes de ele ter cadastro e o cálculo já

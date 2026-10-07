@@ -19,8 +19,8 @@ const membros = junta('membros'), prospects = junta('prospects'), freq = junta('
    e liamos 300, so de 08/04 a 12/05 — a inadimplencia de meados de maio em diante
    nunca entrava na conta. Toda rota paginada devolve o header 'total'; aqui pedimos
    exatamente as paginas que faltam, com rotulo proprio ('atraso:x300'), e o calculo
-   junta tudo pelo prefixo como antes. Teto de seguranca de 60 paginas extras. */
-const PAGINAS_EXTRAS_MAX = 60;
+   junta tudo pelo prefixo como antes. Teto de seguranca de 120 paginas extras. */
+const PAGINAS_EXTRAS_MAX = 120;
 const grupoPag = {};
 for (const r of res) {
   if (!r || !r.rotulo || !r.url) continue;
@@ -32,6 +32,14 @@ for (const r of res) {
   const g = grupoPag[pre] || (grupoPag[pre] = { take: take, ate: 0, total: 0, url: r.url });
   g.ate = Math.max(g.ate, skip + take);
   if (isFinite(tot) && tot > g.total) g.total = tot;
+}
+/* 07/10/2026: contratos vigentes. Com o filtro de status valendo, a lista tem ~300 linhas e
+   basta completar do comeco. Se a EVO voltar a ignorar o filtro (lista de 10 mil, ordenada
+   pelo fim do contrato), os vigentes moram nas ultimas ~1.800 linhas: pede-se so a cauda. */
+const CAUDA_CONTRATOS = 1800;
+if (grupoPag.contratos && grupoPag.contratos.total > 2000) {
+  const g = grupoPag.contratos;
+  g.ate = Math.max(g.ate, Math.floor(Math.max(0, g.total - CAUDA_CONTRATOS) / g.take) * g.take);
 }
 const extras = [];
 for (const pre of Object.keys(grupoPag)) {

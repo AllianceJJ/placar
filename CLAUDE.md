@@ -68,6 +68,20 @@ Data Tables principais:
 4. **Alerta de dados velhos:** aviso vermelho no topo quando `atualizadoEm` passa de 8 dias.
 5. **Mapa de calor da grade** (`blocoMapaGrade`), dentro da seção de grade.
 
+## 3b. O que mudou em 06–07/10/2026 (publicado)
+
+O código dos nós alterados e o detalhe de cada mudança estão em `n8n/` (veja `n8n/APLICAR.md`).
+
+- **Relatório: o escopo vem do gatilho.** São dois gatilhos, "Segunda 5h" (semana) e "Dia 1o 5h" (fechamento).
+  - A regra antiga, "dia ≤ 5 = mês", refez o fechamento de setembro na segunda 05/10.
+  - Quando o dia 1º cair numa segunda, só o mensal roda.
+- **Coleta: contratos lidos do começo da lista.** A EVO 2026.10.05.1 passou a respeitar `statusMemberMembership=1`: a lista caiu de 10.020 para 279 linhas e a cauda antiga vinha vazia. A "Agenda dos leads" volta a pedir a cauda se o total passar de 2.000.
+- **Coleta: paginação completa pelo header `total`.** Os atrasos liam 300 de 1.671 linhas. Se alguma lista ainda vier cortada, o "Validar formato" marca `TRUNCADO` e o Relatório avisa no WhatsApp.
+- **Novos = cadastro do período com contrato ou plano comprado.** O fechamento não muda mais conforme o dia em que roda. Conversão sem venda não é matrícula.
+- **Folha:** conta até ontem e só aula individual **finalizada** no EVO (decisão do Eduard, 07/10). As não finalizadas aparecem numa lista no painel.
+- **Oportunidades como a EVO conta:** `leads_evo` = oportunidades cadastradas no mês (abertas + convertidas). O pipeline não conta "Não deu certo" nem lead de quem já é aluno.
+- **Data Table "Leads vistos"** (`gktn7Z9NzpG7aZEf`): a Coleta grava os leads a cada rodada. É dela que sai o canal e a data de cadastro de quem converteu, porque a EVO tira o lead de `/v1/prospects` na conversão.
+
 ## 4. Decisões do Eduard (não reabrir)
 
 - Infantil **nunca** terá chamada de presença. A leitura é feita por contrato e pela faixa infantil na ficha.
@@ -85,6 +99,8 @@ Data Tables principais:
 - `/v1/members` não filtra status: vem a base inteira em páginas de 150. `membershipStatus: "Suspended"` indica contrato congelado.
 - A presença na agenda vem `true` já no agendamento. Quem separa aula dada de aula futura é `isFinalized`.
 - O telefone fica em `contacts[]` (`description` + `ddi`), não num campo solto.
+- `/v3/membermembership?statusMemberMembership=1` passou a filtrar de verdade em 10/2026 (279 linhas em vez de 10 mil). Não presuma o tamanho de lista nenhuma: confira o header `total`.
+- Toda rota paginada devolve o header `total`. Página fixa no Plano corta em silêncio: foi o caso dos recebíveis em atraso.
 - A saída de um nó de Data Table só carrega as colunas mapeadas. **Nunca** encadear um filtro que depende de campo calculado depois de um upsert. Esse foi o bug da Fila em 07/09.
 
 ## 6. Para conferir na segunda, 28/09

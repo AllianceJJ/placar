@@ -95,6 +95,9 @@ const valem = vigentes.filter(c => porId[c.idMember] && !idCongelado[c.idMember]
    ativo e vira linha propria no painel. */
 const idCongeladoAtivo = {};
 for (const c of vigentes) if (porId[c.idMember] && idCongelado[c.idMember]) idCongeladoAtivo[c.idMember] = 1;
+/* 07/10/2026: com o filtro de status valendo na EVO, o contrato suspenso pode nao vir na
+   lista de vigentes. Se nenhum congelado aparecer por contrato, conta pelo cadastro. */
+if (!Object.keys(idCongeladoAtivo).length) for (const k of Object.keys(idCongelado)) idCongeladoAtivo[k] = 1;
 const congelados = Object.keys(idCongeladoAtivo).length;
 const listaCongelados = Object.keys(idCongeladoAtivo).map(id => ({ aluno: nomeDe(id) }));
 const contratosSemValor = valem.filter(c => num(c.saleValue) <= 0).length;
@@ -636,10 +639,16 @@ for (const s of sessoesMes) {
 /* Aula individual dada no mes entra na folha pelo mesmo valor por aula. A experimental
    e a complementar da metodologia vao em colunas separadas: as duas se pagam, mas so a
    primeira conta como funil. */
+/* 07/10/2026 (decisao do Eduard): so se paga aula individual FINALIZADA no EVO.
+   presenca=true vem ja no agendamento, entao aula futura, falta e aula passada que
+   ninguem finalizou ficam fora — as passadas vao para uma lista de conferencia. */
+const naoFinalizadas = [];
 for (const a of indMes) {
-  /* presenca=true vem ja no agendamento: aula de hoje em diante e falta nao se pagam.
-     Aula passada que ninguem finalizou continua contando, como antes. */
-  if (!a.presente || a.falta || (!a.finalizada && !(a.data && a.data < hojeYMD))) continue;
+  if (!a.presente || a.falta) continue;
+  if (!a.finalizada) {
+    if (a.data && a.data < hojeYMD) naoFinalizadas.push({ data: a.data, professor: a.professor, atividade: a.atividade });
+    continue;
+  }
   const p = a.professor;
   if (!folhaMap[p]) folhaMap[p] = { professor: p, coletivas: 0, introdutorias: 0, complementares: 0, presencas: 0, modalidades: {} };
   if (a.complementar) folhaMap[p].complementares = (folhaMap[p].complementares || 0) + 1;
@@ -706,7 +715,10 @@ const folhaResumo = {
   receita_das_particulares: soma(particulares, 'receita'),
   receita_personal_recorrente: soma(personalRec, 'receita'),
   particular_fora_do_calculo: true,
-  total_apurado: arred(totalAulasMes * VALOR_AULA + parteExames, 2)
+  total_apurado: arred(totalAulasMes * VALOR_AULA + parteExames, 2),
+  /* Aula individual de data passada sem finalizacao no EVO: nao entra na folha. */
+  nao_finalizadas: naoFinalizadas.length,
+  lista_nao_finalizadas: naoFinalizadas.sort((a, b) => String(a.data).localeCompare(String(b.data)))
 };
 
 const receitaPlanosVendidos = arred(planosVendidos.reduce((t, x) => t + num(x.receita), 0), 2);
