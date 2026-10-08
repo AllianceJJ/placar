@@ -5,7 +5,8 @@
    afetada. Serve para o Eduard saber na hora que uma secao vai cair e por que.
    Se mudar o contrato do painel, atualize a lista REGRAS aqui junto.
    06/10/2026: tambem avisa quando uma lista da EVO veio cortada (aviso TRUNCADO da
-   Coleta) — e numero errado sem nenhuma secao cair, o pior tipo de erro. */
+   Coleta) — e numero errado sem nenhuma secao cair, o pior tipo de erro.
+   08/10/2026: confere tambem venda nova x renovacao (opcional ate a 1a rodada real). */
 const calc = $('Coleta').first().json || {};
 const raiz = { mes: calc.mes, base: calc.base, detalhe: calc.detalhe };
 const NL = String.fromCharCode(10);
@@ -45,6 +46,8 @@ checar('mes.mes', 'ym', 'todas as secoes do mes');
 ['leads', 'agendadas', 'realizadas', 'matriculas'].forEach(c => checar('mes.' + c, 'num', 'Funil'));
 checarLista('mes.professores', { nome: 'str', realizadas: 'num', fechadas: 'num' }, 'Conversao por professor');
 checarLista('mes.planos', { nome: 'str', alunos: 'num', receita: 'num' }, 'Mix de planos');
+checar('mes.vendas_novas', 'num', 'Vendas do mes', true);
+checar('mes.vendas_renovacao', 'num', 'Vendas do mes', true);
 
 /* Composicao da base */
 if (checar('base', 'obj', 'Composicao da base')) {
@@ -83,6 +86,9 @@ if (checar('detalhe', 'obj', 'metade do painel')) {
     checarLista('detalhe.pipeline.lista', { nome: 'str', dias: 'num' }, 'Pipeline');
   }
   checarLista('detalhe.planos_vendidos', { nome: 'str', novas: 'num', renovacoes: 'num' }, 'Mix de planos');
+  checarLista('detalhe.vendas_do_mes', { aluno: 'str', plano: 'str', data: 'str', tipo: 'str' }, 'Vendas do mes', true);
+  const vnd = get(raiz, 'detalhe.vendas_do_mes'), vn = get(raiz, 'mes.vendas_novas'), vr = get(raiz, 'mes.vendas_renovacao');
+  if (Array.isArray(vnd) && tipos.num(vn) && tipos.num(vr) && vnd.length !== vn + vr) problemas.push('vendas_do_mes tem ' + vnd.length + ' itens, mas novas + renovacoes = ' + (vn + vr) + ' (Vendas do mes)');
   checarLista('detalhe.aulas_por_professor', { professor: 'str', aulas: 'num', presencas: 'num' }, 'Grade da semana');
   checarLista('detalhe.aulas_por_modalidade', { modalidade: 'str', aulas: 'num' }, 'Grade da semana');
   if (get(raiz, 'detalhe.mapa_grade') !== undefined && get(raiz, 'detalhe.mapa_grade') !== null) {

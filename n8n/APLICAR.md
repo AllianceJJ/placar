@@ -37,3 +37,15 @@ Nós novos sem código próprio:
 - `validacao.avisos` deve vir sem `TRUNCADO`.
 - A tabela "Leads vistos" deve crescer com os leads da semana.
 - A inadimplência pode subir no painel. Não é piora: é atraso de meados de maio a agosto que a coleta não lia.
+- Primeira rodada com venda nova × renovação: `mes.vendas_novas` + `mes.vendas_renovacao` precisa dar o tamanho de `detalhe.vendas_do_mes`, e `diagnostico.vendas_sem_historico` deve vir 0.
+
+## 08/10/2026 — venda nova × renovação (publicado)
+
+| Workflow | Nó | Arquivo | O que mudou |
+|---|---|---|---|
+| Coleta | Agenda dos leads | `coleta/Agenda_dos_leads.js` | Pede `/v1/members/{id}` (rótulo `hist:`) de cada comprador de plano do mês, até 120; entra no orçamento de tempo |
+| Coleta | Vendas do mes (novo) | `coleta/Vendas_do_mes.js` | Entre "Complementar indicadores" e "Mapa da grade". Gera `mes.vendas_novas`, `mes.vendas_renovacao` e `detalhe.vendas_do_mes`; erro vira `detalhe.vendas_erro`, sem derrubar o Placar |
+| Coleta | Validar formato | `coleta/Validar_formato.js` | Avisos de vendas ausentes, lista que não bate e venda sem histórico |
+| Relatório | Validar dados | `relatorio/Validar_dados.js` | Confere as vendas (opcional) e manda no WhatsApp se a lista não bater |
+
+Teste: executor offline com as vendas reais de setembro (32 vendas, 18 novas e 14 renovações; o resto da Coleta saiu idêntico) e teste real em 08/10 às 22h44 (2min28, sem avisos, outubro com 7 vendas: 4 + 3).

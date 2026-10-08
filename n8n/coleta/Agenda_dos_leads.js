@@ -49,6 +49,25 @@ for (const pre of Object.keys(grupoPag)) {
   }
 }
 
+/* 08/10/2026: VENDA NOVA x RENOVACAO. Para saber se quem comprou plano no mes ja teve
+   contrato antes, pede o cadastro completo de cada comprador em /v1/members/{id}: ele traz
+   'memberships' com TODOS os contratos (vigentes e vencidos), numa chamada so. Fica de fora
+   a cobranca automatica do recorrente (idSaleRecurrency) e venda de R$ 0. Sao ~40 chamadas
+   por rodada, as 5h (preco noturno). Quem usa e o no 'Vendas do mes'. */
+const HIST_MAX = 120;
+let iM = '', fM = '';
+try { const p = $('Plano de coleta').first().json; iM = String(p.inicioMes || ''); fM = String(p.fimMes || ''); } catch (e) { iM = ''; fM = ''; }
+const hist = [], vistoComp = {};
+for (const v of junta('vendas')) {
+  if (!v || v.idSaleRecurrency || !v.idMember || vistoComp[v.idMember]) continue;
+  const d = String(v.saleDate || '').slice(0, 10);
+  if (!d || !iM || d < iM || d > fM) continue;
+  const temPlano = (Array.isArray(v.saleItens) ? v.saleItens : []).some(it => it && it.idMembership && ((Number(it.saleValue) || Number(it.itemValue) || 0) > 0));
+  if (!temPlano) continue;
+  vistoComp[v.idMember] = 1;
+  if (hist.length < HIST_MAX) hist.push({ json: { rotulo: 'hist:' + v.idMember, url: base + '/v1/members/' + v.idMember } });
+}
+
 const hoje = new Date(Date.now() - 10800000);
 const ymd = (d) => d.toISOString().slice(0, 10);
 const menos = (n) => { const x = new Date(hoje); x.setUTCDate(x.getUTCDate() - n); return ymd(x); };
@@ -104,8 +123,8 @@ let t0 = 0;
 try { t0 = Number($('Plano de coleta').first().json.t0) || 0; } catch (e) { t0 = 0; }
 const gastos = t0 ? (Date.now() - t0) / 1000 : 0;
 let TETO = TETO_MAX;
-/* As paginas extras saem do mesmo orcamento de tempo, antes da agenda dos leads. */
-if (gastos > 0) TETO = Math.max(0, Math.min(TETO_MAX, Math.floor((ORCAMENTO - gastos - extras.length * CUSTO) / CUSTO)));
+/* As paginas extras e os historicos saem do mesmo orcamento de tempo, antes da agenda dos leads. */
+if (gastos > 0) TETO = Math.max(0, Math.min(TETO_MAX, Math.floor((ORCAMENTO - gastos - (extras.length + hist.length) * CUSTO) / CUSTO)));
 
 const u = [];
 for (const alvo of fila.slice(0, TETO)) {
@@ -116,4 +135,4 @@ for (const alvo of fila.slice(0, TETO)) {
 }
 /* 17/09/2026: a EVO devolve só 10 sessões quando não recebe take — aluno novo com muitas aulas perdia a experimental (caso Pablo). */
 for (const it of u) { const j = it && it.json; if (j && typeof j.url === 'string' && !/[?&]take=/.test(j.url)) j.url += '&take=50'; }
-return extras.concat(u);
+return extras.concat(hist, u);

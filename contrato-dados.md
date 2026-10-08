@@ -241,7 +241,16 @@ professor/modalidade, folha, experimentais, planos vendidos, matrículas sem exp
 coortes); `churn.serie_mensal`; `folha_resumo`; e os quatro objetos
 `alunos_em_risco`, `aptos_ao_exame`, `infantil` e `pipeline`.
 
-**Faltam no n8n** (o painel usa, a Coleta não confere):
+**08/10/2026:** a Coleta passou a gerar a separação de vendas (nó "Vendas do mes", com o
+histórico de contratos de cada comprador lido em `/v1/members/{id}`). O "Validar formato" da
+Coleta avisa se faltar ou não bater com a lista, e o "Validar dados" do Relatório manda o
+problema no WhatsApp. `vendas_novas`/`vendas_renovacao` seguem opcionais no painel até a
+rodada de 12/10 confirmar; depois, passar para `num` no CONTRATO_MES. `vendas_historico` não é
+gerado: o histórico se forma mês a mês em `meses[]`.
+Os campos da lista abaixo já são conferidos pelo "Validar dados" do Relatório (desde 27/09),
+que avisa no WhatsApp; o "Validar formato" da Coleta só barra os erros graves.
+
+**Faltam no "Validar formato" da Coleta** (o painel usa; o Relatório confere):
 `mes.mes` (formato AAAA-MM), `mes.retornos`, `mes.valorInad`, `mes.leads`,
 `mes.matriculas`; itens de `professores[]` e `planos[]`;
 `base.cadastrados_ativos`, `base.contratos_ativos`, `base.cadastro_sem_contrato_vigente`;
@@ -249,5 +258,3 @@ coortes); `churn.serie_mensal`; `folha_resumo`; e os quatro objetos
 `alunos_em_risco.ativos_avaliados`, e os campos dentro dos itens das listas
 (`nome`, `aulas`, `dias`, `professor`, `presencas`, `mes` etc.).
 `mapa_grade` hoje é só aviso no n8n; no painel, se vier quebrado, só o mapa some.
-A separação de vendas ainda não é gerada pela Coleta: `mes.vendas_novas`,
-`mes.vendas_renovacao`, `detalhe.vendas_do_mes` e `vendas_historico`.

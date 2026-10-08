@@ -19,7 +19,7 @@ Atualizado em 24/09/2026. Dono: Eduard (sócio da Alliance Jiu-Jitsu São José 
 | Placar — Coleta e Cálculo | `TlhqxSdMOllJHYQw` | Sub-workflow do Relatório | Puxa a EVO pelo Motor e calcula tudo |
 | Placar — Motor EVO | `ZwLL2NKL4N13Fonr` | Sub-workflow | Executa as chamadas à EVO (a credencial fica aqui) |
 | Fila de atendimento | `n5bMEu6rX5GzQfaq` | Segunda 7h | Classifica alunos e dispara as réguas automáticas |
-| Experimental — no-show e pós-aula | `0BYwKSHio7SaumxA` | 8h, 15h e 21h30 | Régua de leads que faltaram ou fizeram a experimental |
+| Experimental — no-show e pós-aula | `0BYwKSHio7SaumxA` | 5h30 (completa), 15h e 21h30 (leves) | Régua de leads que faltaram ou fizeram a experimental |
 | Retenção 21 dias | `n89FvMSLcWhInbFl` | Webhook da EVO | Aluno ausente há 21 dias |
 | Contagem de aulas | `1JDE7U8Ig899XHXV` | Diário 3h | Alimenta a Data Table "Aulas por aluno" |
 | Workflow de erro | `U2Tv6yvMexNZyaei` | Em falha | Alerta de erro |
@@ -93,6 +93,26 @@ O código dos nós alterados e o detalhe de cada mudança estão em `n8n/` (veja
   - O código publicado da Experimental está em `n8n/experimental/`.
 - **n8n:** em 7 dias foram 3.507 execuções, 87% delas dos dois copilotos. Com os horários novos, devem cair para perto da metade.
 - **Teste sem custo:** antes de testar contra a EVO, use `n8n/teste/` (código rodando no navegador com a saída de uma execução real).
+
+## 3d. O que mudou em 08/10/2026 (publicado)
+
+- **Venda nova × renovação na Coleta.** A "Agenda dos leads" pede `/v1/members/{id}` de cada comprador de plano do mês (rótulo `hist:`). Essa rota traz `memberships`, com todos os contratos, vigentes e vencidos, numa chamada só. O nó novo **"Vendas do mes"**, entre o "Complementar indicadores" e o "Mapa da grade", gera:
+  - `mes.vendas_novas`, `mes.vendas_renovacao` e `detalhe.vendas_do_mes`;
+  - a observação de cada renovação: retorno, mesmo plano, troca de plano ou contrato adicional.
+
+  Mesmo plano é o mesmo `idMembership` ou o mesmo nome sem parêntese e sem ano. Testado com setembro (32 vendas: 18 novas, 14 renovações) e com outubro (7: 4 + 3).
+- **Motor EVO: contador sem perda.** Cada execução grava um lançamento na Data Table "Consumo EVO — lançamentos" (`rkqVjrUFmMJEcIBa`), e o total do mês é a soma deles. Antes, réguas disparadas em lote pela EVO rodavam o Motor ao mesmo tempo e uma execução apagava a soma da outra (~13% a menos que a tela da EVO). O saldo inicial de outubro foi copiado da tela da EVO.
+- **Régua de Oportunidades:**
+  - lê a EVO pelo Motor;
+  - escreve o nome sem caixa alta;
+  - não manda mais nada para lead "NÃO DEU CERTO".
+- **Copilotos por evento (economia de execuções no n8n):**
+  - o do Instagram roda dentro de "Instagram — comentários e DMs", com espera de 200s;
+  - o do WhatsApp roda dentro de "Respostas do WhatsApp — recebimento" das 7h às 21h, com espera de 320s e só sugestão;
+  - à noite fica o workflow antigo, a cada 30 min, com a resposta automática em assunto liberado;
+  - ao mudar o prompt, mudar nos dois lugares.
+- **Ranking do Mês duplicado desligado** ("top 5 da catraca"). Workflows de teste foram movidos para as pastas "Manutenção — rodar na mão" e "Arquivo — testes, sondas e desligados".
+- **Plano do n8n:** Pro, com 10 mil execuções por mês. Em 07/10 já eram 5.788. O webhook de respostas do WhatsApp sozinho faz ~370 por dia. Upgrade pendente com o Eduard.
 
 ## 4. Decisões do Eduard (não reabrir)
 

@@ -48,7 +48,7 @@ else {
   if (ruins) aviso.push('mapa_grade: ' + ruins + ' horarios fora do formato {dia, hora, infantil, turmas}');
   if (num(mg.dias_lidos) && mg.dias_lidos < 40) aviso.push('mapa_grade leu so ' + mg.dias_lidos + ' dias com aula nas 8 semanas');
 }
-for (const k of ['complemento_erro', 'complemento_erro_2', 'mapa_grade_erro']) if (d[k]) aviso.push(k + ': ' + d[k]);
+for (const k of ['complemento_erro', 'complemento_erro_2', 'mapa_grade_erro', 'vendas_erro']) if (d[k]) aviso.push(k + ': ' + d[k]);
 const diag = out.diagnostico || {};
 if (arr(diag.respostas_erro) && diag.respostas_erro.length > 5) aviso.push(diag.respostas_erro.length + ' chamadas da EVO com erro');
 if (d.funil_diagnostico && d.funil_diagnostico.fila_truncada) aviso.push('funil truncado: ' + d.funil_diagnostico.pessoas_que_ficaram_de_fora + ' pessoas fora da agenda');
@@ -75,6 +75,18 @@ try {
 } catch (e) { aviso.push('conferencia de paginas falhou: ' + String(e && e.message || e)); }
 if (m.leads_evo !== undefined && !num(m.leads_evo)) aviso.push('mes.leads_evo nao e numero');
 if (m.leads_convertidos !== undefined && !num(m.leads_convertidos)) aviso.push('mes.leads_convertidos nao e numero');
+
+/* 08/10/2026: venda nova x renovacao. Aviso, nao erro: se faltar, so a secao Vendas do
+   mes some no painel. A soma tem de bater com a lista venda a venda. */
+if (!num(m.vendas_novas) || !num(m.vendas_renovacao)) aviso.push('mes.vendas_novas / vendas_renovacao ausentes');
+else if (!arr(d.vendas_do_mes)) aviso.push('detalhe.vendas_do_mes nao e lista');
+else {
+  if (d.vendas_do_mes.length !== m.vendas_novas + m.vendas_renovacao) aviso.push('vendas: ' + d.vendas_do_mes.length + ' na lista, ' + (m.vendas_novas + m.vendas_renovacao) + ' no total');
+  const ruins = d.vendas_do_mes.filter(x => !(obj(x) && typeof x.aluno === 'string' && typeof x.plano === 'string'
+    && /^\d{4}-\d{2}-\d{2}$/.test(String(x.data || '')) && (x.tipo === 'nova' || x.tipo === 'renovacao'))).length;
+  if (ruins) aviso.push('vendas_do_mes: ' + ruins + ' itens fora do formato {aluno, plano, data, tipo}');
+}
+if (num(diag.vendas_sem_historico) && diag.vendas_sem_historico > 0) aviso.push(diag.vendas_sem_historico + ' venda(s) classificada(s) sem o historico de contratos (regra reserva pelo cadastro)');
 
 if (grave.length) {
   throw new Error('Placar — Coleta: formato quebrado, nada foi entregue ao Relatorio. ' + grave.join('; ') + '.');
