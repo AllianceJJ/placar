@@ -6,7 +6,9 @@ for (const r of res) {
 }
 const agora = new Date(Date.now() - 10800000);
 const ymd = (d) => d.toISOString().slice(0, 10);
-const de = ymd(new Date(agora.getTime() - 3 * 86400000));
+/* 08/10/2026: 8 dias para tras (era 3). Com 3, a aula de 7 dias atras nunca aparecia
+   e o D7 da regua nunca saiu. Nao custa chamada a mais: e uma consulta por lead. */
+const de = ymd(new Date(agora.getTime() - 8 * 86400000));
 const ate = ymd(new Date(agora.getTime() + 7 * 86400000));
 const base = "https://evo-integracao.w12app.com.br/api";
 const TETO = 30;
