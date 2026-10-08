@@ -82,6 +82,18 @@ O código dos nós alterados e o detalhe de cada mudança estão em `n8n/` (veja
 - **Oportunidades como a EVO conta:** `leads_evo` = oportunidades cadastradas no mês (abertas + convertidas). O pipeline não conta "Não deu certo" nem lead de quem já é aluno.
 - **Data Table "Leads vistos"** (`gktn7Z9NzpG7aZEf`): a Coleta grava os leads a cada rodada. É dela que sai o canal e a data de cadastro de quem converteu, porque a EVO tira o lead de `/v1/prospects` na conversão.
 
+## 3c. Custos (medido e otimizado em 07/10/2026)
+
+- **EVO API:** é cobrada por chamada, e a diurna custa o dobro da noturna (antes das 6h), pelo preço que o Motor usa. O Motor grava tudo na tabela "Consumo EVO API". Num mês normal são ~4.300 chamadas e ~R$ 100; setembro chegou a R$ 205 por causa de testes. Antes da otimização, ~60% do custo vinha da régua da Experimental.
+- **O que mudou em 07/10:**
+  - Experimental: rodada completa às 5h30 (antes 8h); 15h e 21h30 em modo leve, só para leads com aula marcada, cadastro recente ou etapa AULA AGENDADA.
+  - Base do dia: às 5h (antes 7h40).
+  - Copiloto do Instagram: a cada 10 min, das 7h às 22h (antes 5 min, 24h).
+  - Copiloto do WhatsApp: 10 min de dia e 30 min de madrugada.
+  - O código publicado da Experimental está em `n8n/experimental/`.
+- **n8n:** em 7 dias foram 3.507 execuções, 87% delas dos dois copilotos. Com os horários novos, devem cair para perto da metade.
+- **Teste sem custo:** antes de testar contra a EVO, use `n8n/teste/` (código rodando no navegador com a saída de uma execução real).
+
 ## 4. Decisões do Eduard (não reabrir)
 
 - Infantil **nunca** terá chamada de presença. A leitura é feita por contrato e pela faixa infantil na ficha.
