@@ -1,0 +1,28 @@
+name: Alarme do Placar atrasado
+
+# Segunda e dia 1º às 9h de Brasília (12h UTC), 4 horas depois do horário do Relatório.
+# Não depende do n8n: se o n8n parar, este alarme continua rodando no GitHub.
+on:
+  schedule:
+    - cron: '0 12 * * 1'
+    - cron: '0 12 1 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: alarme-placar
+
+jobs:
+  conferir:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 100
+      - name: Conferir a data do dados.json
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash .github/scripts/conferir-placar.sh
