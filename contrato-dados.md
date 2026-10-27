@@ -67,8 +67,8 @@ lançados à mão), mas o que vier precisa ter o formato certo.
 | `planos[].sem_valor` | número | não | Mix de planos |
 | `servicos` | lista | não | Serviços e produtos |
 | `produtos` | lista | não | Serviços e produtos |
-| `vendas_novas` | número | não por enquanto (vira obrigatório quando a Coleta mandar) | Vendas do mês |
-| `vendas_renovacao` | número | não por enquanto (vira obrigatório quando a Coleta mandar) | Vendas do mês |
+| `vendas_novas` | número | sim (desde 27/10/2026) | Vendas do mês |
+| `vendas_renovacao` | número | sim (desde 27/10/2026) | Vendas do mês |
 
 ## Composição da base (`base`)
 
@@ -244,8 +244,9 @@ coortes); `churn.serie_mensal`; `folha_resumo`; e os quatro objetos
 **08/10/2026:** a Coleta passou a gerar a separação de vendas (nó "Vendas do mes", com o
 histórico de contratos de cada comprador lido em `/v1/members/{id}`). O "Validar formato" da
 Coleta avisa se faltar ou não bater com a lista, e o "Validar dados" do Relatório manda o
-problema no WhatsApp. `vendas_novas`/`vendas_renovacao` seguem opcionais no painel até a
-rodada de 12/10 confirmar; depois, passar para `num` no CONTRATO_MES. `vendas_historico` não é
+problema no WhatsApp. A rodada de 12/10 confirmou os campos, e em 27/10/2026
+`vendas_novas`/`vendas_renovacao` passaram a ser obrigatórios no mês mais recente
+(`num` no CONTRATO_MES). `vendas_historico` não é
 gerado: o histórico se forma mês a mês em `meses[]`.
 Os campos da lista abaixo já são conferidos pelo "Validar dados" do Relatório (desde 27/09),
 que avisa no WhatsApp; o "Validar formato" da Coleta só barra os erros graves.

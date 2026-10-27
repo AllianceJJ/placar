@@ -2961,8 +2961,8 @@ const CONTRATO_MES = [
   ['planos[].alunos', 'num', 'planos'], ['planos[].receita', 'num', 'planos'],
   ['planos[].vendas', 'num?', 'planos'], ['planos[].sem_valor', 'num?', 'planos'],
   ['servicos', 'lista?', 'servicos'], ['produtos', 'lista?', 'servicos'],
-  /* opcional até a Coleta mandar; depois disso, passar para 'num' */
-  ['vendas_novas', 'num?', 'vendas'], ['vendas_renovacao', 'num?', 'vendas']
+  /* 27/10/2026: obrigatório no mês mais recente (a Coleta manda desde 08/10; rodada de 12/10 conferida) */
+  ['vendas_novas', 'num', 'vendas'], ['vendas_renovacao', 'num', 'vendas']
 ];
 
 const TIPOS = {
