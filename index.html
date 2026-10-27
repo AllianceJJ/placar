@@ -4,61 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="color-scheme" content="light dark">
+<meta name="color-scheme" content="dark">
 <meta name="description" content="Painel gerencial da Alliance Jiu-Jitsu Sao Jose dos Campos.">
 <title>Placar da Alliance SJC</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Instrument+Sans:wght@400;500;600&display=swap">
 <style>
+/* 27/10/2026: o painel fica sempre na versão escura (cores de antes), com fundo preto. */
 :root{
-  color-scheme: light;
-  --ground:#f7f5f4; --surface:#fffefd; --surface-2:#f1edeb; --surface-3:#e9e4e1;
-  --ink:#17110f; --ink-2:#574e4a; --ink-3:#8b807b;
-  --rule:#e2dcd9; --rule-strong:#cdc4c0;
-  --accent:#8e1f2b; --accent-soft:#f6e7e8; --accent-ink:#ffffff;
-  --good:#0ca30c; --good-ink:#0a6b13; --good-soft:#e4f4e2;
-  --warn:#fab219; --warn-ink:#7d5405; --warn-soft:#fdf1d9;
-  --crit:#d03b3b; --crit-ink:#9d2222; --crit-soft:#fae3e3;
-  --s1:#2a78d6; --s1-soft:rgba(42,120,214,.14);
-  --sneg:#e34948; --sneg-soft:rgba(227,73,72,.14);
-  --saq:#1baf7a; --saq-soft:rgba(27,175,122,.14);
-  --f1:#86b6ef; --f2:#5598e7; --f3:#2a78d6; --f4:#1c5cab;
-  --c1:#86b6ef; --c2:#2a78d6; --c3:#0d366b;
-  --p1:#2a78d6; --p2:#eb6834; --p3:#1baf7a; --p4:#eda100;
-  --p5:#e87ba4; --p6:#008300; --p7:#4a3aa7; --p8:#e34948;
-  /* paleta da pizza: validada para daltonismo e contraste nos dois temas */
-  --pz1:#b3272f; --pz2:#2f6fd6; --pz3:#b57a06; --pz4:#0f7a4e; --pz5:#a24bc4; --pz6:#d9701f; --pz7:#0b80ab;
-  --grid:#e6e1de; --axis:#cdc4c0;
-  --shadow:0 1px 2px rgba(23,17,15,.05), 0 8px 24px -12px rgba(23,17,15,.16);
-  --display:"Archivo", "Helvetica Neue", Arial, sans-serif;
-  --body:"Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
-}
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
-    color-scheme: dark;
-    --ground:#100d0c; --surface:#1a1615; --surface-2:#221d1b; --surface-3:#2b2422;
-    --ink:#ffffff; --ink-2:#c6bcb7; --ink-3:#8f837e;
-    --rule:#2e2725; --rule-strong:#3d3431;
-    --accent:#d1485a; --accent-soft:#2e1a1d; --accent-ink:#140d0e;
-    --good:#0ca30c; --good-ink:#57cf57; --good-soft:#122c12;
-    --warn:#fab219; --warn-ink:#f0bb4a; --warn-soft:#2e2410;
-    --crit:#d03b3b; --crit-ink:#f08080; --crit-soft:#311717;
-    --s1:#3987e5; --s1-soft:rgba(57,135,229,.20);
-    --sneg:#e66767; --sneg-soft:rgba(230,103,103,.20);
-    --saq:#199e70; --saq-soft:rgba(25,158,112,.22);
-    --f1:#3987e5; --f2:#2a78d6; --f3:#256abf; --f4:#184f95;
-    --c1:#256abf; --c2:#5598e7; --c3:#b7d3f6;
-    --p1:#3987e5; --p2:#d95926; --p3:#199e70; --p4:#c98500;
-    --p5:#d55181; --p6:#008300; --p7:#9085e9; --p8:#e66767;
-    --pz1:#cf4a5f; --pz2:#5d88d6; --pz3:#bd8524; --pz4:#249c72; --pz5:#a05fc4; --pz6:#d4753a; --pz7:#2492b4;
-    --grid:#2b2523; --axis:#3d3431;
-    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.7);
-  }
-}
-:root[data-theme="dark"]{
   color-scheme: dark;
-  --ground:#100d0c; --surface:#1a1615; --surface-2:#221d1b; --surface-3:#2b2422;
+  --ground:#000000; --surface:#1a1615; --surface-2:#221d1b; --surface-3:#2b2422;
   --ink:#ffffff; --ink-2:#c6bcb7; --ink-3:#8f837e;
   --rule:#2e2725; --rule-strong:#3d3431;
   --accent:#d1485a; --accent-soft:#2e1a1d; --accent-ink:#140d0e;
@@ -72,9 +28,12 @@
   --c1:#256abf; --c2:#5598e7; --c3:#b7d3f6;
   --p1:#3987e5; --p2:#d95926; --p3:#199e70; --p4:#c98500;
   --p5:#d55181; --p6:#008300; --p7:#9085e9; --p8:#e66767;
+  /* paleta da pizza: validada para daltonismo e contraste no fundo escuro */
   --pz1:#cf4a5f; --pz2:#5d88d6; --pz3:#bd8524; --pz4:#249c72; --pz5:#a05fc4; --pz6:#d4753a; --pz7:#2492b4;
   --grid:#2b2523; --axis:#3d3431;
   --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.7);
+  --display:"Archivo", "Helvetica Neue", Arial, sans-serif;
+  --body:"Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 *{box-sizing:border-box}
 body{
