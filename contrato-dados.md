@@ -41,7 +41,7 @@ lançados à mão), mas o que vier precisa ter o formato certo.
 | `retornos` | número | sim | Placar, Movimento |
 | `cancelamentos` | número | sim | Placar, Movimento |
 | `alunosInicio` | número | não | Placar, Movimento |
-| `mrr` | número | sim | Placar, Receita |
+| `mrr` | número | sim (desde 11/11/2026: soma do valor mensal dos contratos ativos; o valor por boletos fica em `detalhe.caixa_do_mes.recebiveis_do_mes`) | Placar, Receita |
 | `contratos` | número | sim | Receita |
 | `inadimplentes` | número | sim | Placar, Receita |
 | `valorInad` | número | sim | Placar, Receita |
@@ -248,14 +248,28 @@ problema no WhatsApp. A rodada de 12/10 confirmou os campos, e em 27/10/2026
 `vendas_novas`/`vendas_renovacao` passaram a ser obrigatórios no mês mais recente
 (`num` no CONTRATO_MES). `vendas_historico` não é
 gerado: o histórico se forma mês a mês em `meses[]`.
-Os campos da lista abaixo já são conferidos pelo "Validar dados" do Relatório (desde 27/09),
-que avisa no WhatsApp; o "Validar formato" da Coleta só barra os erros graves.
+**03/11/2026 (rascunho no n8n, ainda não publicado):** o "Validar formato" passou a
+conferir o resto da lista. Ao publicar, apague esta linha.
 
-**Faltam no "Validar formato" da Coleta** (o painel usa; o Relatório confere):
-`mes.mes` (formato AAAA-MM), `mes.retornos`, `mes.valorInad`, `mes.leads`,
-`mes.matriculas`; itens de `professores[]` e `planos[]`;
-`base.cadastrados_ativos`, `base.contratos_ativos`, `base.cadastro_sem_contrato_vigente`;
-`detalhe.coorte_resumo`, `churn.total`, `churn.motivos`,
-`alunos_em_risco.ativos_avaliados`, e os campos dentro dos itens das listas
-(`nome`, `aulas`, `dias`, `professor`, `presencas`, `mes` etc.).
-`mapa_grade` hoje é só aviso no n8n; no painel, se vier quebrado, só o mapa some.
+- **Erro grave** (para a rodada, nada é entregue): `mes.mes` no formato AAAA-MM,
+  `mes.retornos`, `mes.valorInad`, `mes.leads`, `mes.matriculas`,
+  `base.cadastrados_ativos` e `base.contratos_ativos`. Os dois últimos vão para a tabela
+  "Historico da base" pelo Relatório.
+- **Aviso** (em `validacao.avisos`): `base.cadastro_sem_contrato_vigente`,
+  `detalhe.coorte_resumo`, `churn.total`, `churn.motivos`, `churn.pior_mes.mes`,
+  `alunos_em_risco.ativos_avaliados` e os campos dentro dos itens das listas:
+  `professores[]` (nome, realizadas, fechadas), `professoresSemana[]` (nome),
+  `planos[]` (nome, alunos, receita), `experimentais_do_mes[]` (data),
+  `coortes_entrada[]` (mes, entraram, sobreviveram), `churn.serie_mensal[]` (mes,
+  cancelamentos), `alunos_em_risco.lista[]` (nome, dias_sem_treinar número ou null),
+  `aptos_ao_exame.lista[]` (nome, aulas), `pipeline.lista[]` (nome, dias),
+  `planos_vendidos[]` (nome, novas, renovacoes), `aulas_por_professor[]` (professor,
+  aulas, presencas), `aulas_por_modalidade[]` (modalidade, aulas) e `folha_do_mes[]`
+  (professor, aulas, coletivas, introdutorias, presencas).
+- `vendas_novas`/`vendas_renovacao` continuam **aviso** na Coleta, de propósito: se
+  faltarem, só a seção Vendas do mês cai. O "Validar dados" do Relatório ainda os trata
+  como opcionais, então hoje a falta deles **não** chega no WhatsApp.
+- `mapa_grade` continua só aviso no n8n; no painel, se vier quebrado, só o mapa some.
+
+Os mesmos campos também são conferidos pelo "Validar dados" do Relatório (desde 27/09),
+que avisa no WhatsApp.

@@ -88,8 +88,12 @@ for (let p = 0; p < 3; p++) add('freq:' + p, base + '/v1/entries?take=1000&skip=
 
 /* Leads de 120 dias: a matricula costuma vir semanas depois da experimental,
    entao a janela de 60 dias cortava justamente quem converteu. */
-for (let p = 0; p < 2; p++) add('prospects:' + p, base + '/v1/prospects?take=50&skip=' + (p * 50)
-  + '&registerDateStart=' + ymd(menos(agora, 120)) + '&registerDateEnd=' + ymd(agora));
+/* 11/11/2026: desde 01/11 a EVO devolve 500 (resposta vazia) para os 120 dias pedidos de
+   uma vez, enquanto o pedido de 35 dias da regua de Oportunidades segue normal. Agora sao
+   quatro janelas de 30 dias, sem sobreposicao; a Agenda completa as paginas de cada janela
+   pelo header 'total'. Se uma janela falhar, as outras chegam e o Validar formato avisa. */
+for (let j = 0; j < 4; j++) add('prospects:j' + j, base + '/v1/prospects?take=50&skip=0'
+  + '&registerDateStart=' + ymd(menos(agora, 30 * j + 29)) + '&registerDateEnd=' + ymd(menos(agora, 30 * j)));
 
 /* Grade dos ultimos 35 dias: cobre a semana do relatorio e o mes inteiro no fechamento.
    E dela que saem aulas por professor, modalidades dadas e ocupacao por horario. */

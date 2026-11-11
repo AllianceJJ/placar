@@ -103,4 +103,24 @@ try {
   out.detalhe = out.detalhe || {};
   out.detalhe.vendas_erro = String(e && e.message || e);
 }
+/* 11/11/2026 (decisao do Eduard): RECEITA RECORRENTE = soma do valor mensal dos contratos
+   ativos na data da foto, a mesma conta do mix de planos (mes.planos[].receita). A conta do
+   Calcular, pelos boletos que vencem no mes, mudava conforme o dia da leitura: outubro deu
+   R$ 96,6 mil em 27/10 e R$ 88,3 mil no fechamento, com R$ 103 mil em contratos ativos.
+   Ela fica em caixa_do_mes.recebiveis_do_mes, so para conferencia. Aqui, e nao no
+   Calcular, pelo mesmo motivo da venda nova x renovacao. */
+try {
+  const planos = out.mes && Array.isArray(out.mes.planos) ? out.mes.planos : null;
+  if (planos && planos.length) {
+    const soma = Math.round(planos.reduce((t, p) => t + (typeof p.receita === 'number' && isFinite(p.receita) ? p.receita : 0), 0) * 100) / 100;
+    const det = out.detalhe || {};
+    for (const cx of [det.caixa_do_mes, det.avulsos_do_mes && det.avulsos_do_mes.caixa]) {
+      if (cx && typeof cx === 'object') { cx.recebiveis_do_mes = out.mes.mrr; cx.recorrente_contratado = soma; }
+    }
+    out.mes.mrr = soma;
+  }
+} catch (e) {
+  out.detalhe = out.detalhe || {};
+  out.detalhe.mrr_erro = String(e && e.message || e);
+}
 return [{ json: out }];

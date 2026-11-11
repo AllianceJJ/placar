@@ -29,7 +29,10 @@ for (const r of res) {
   if (!mT || !mS) continue;
   const take = Number(mT[1]), skip = Number(mS[1]);
   const tot = Number(r.cabecalho && r.cabecalho.total);
-  const g = grupoPag[pre] || (grupoPag[pre] = { take: take, ate: 0, total: 0, url: r.url });
+  /* 11/11/2026: a chave e a URL sem o skip, e nao so o prefixo: os leads agora vem em
+     quatro janelas de datas com o mesmo prefixo, e cada uma tem o seu proprio total. */
+  const chave = r.url.replace(/([?&]skip=)\d+/, '$1');
+  const g = grupoPag[chave] || (grupoPag[chave] = { pre: pre, take: take, ate: 0, total: 0, url: r.url });
   g.ate = Math.max(g.ate, skip + take);
   if (isFinite(tot) && tot > g.total) g.total = tot;
 }
@@ -37,15 +40,16 @@ for (const r of res) {
    basta completar do comeco. Se a EVO voltar a ignorar o filtro (lista de 10 mil, ordenada
    pelo fim do contrato), os vigentes moram nas ultimas ~1.800 linhas: pede-se so a cauda. */
 const CAUDA_CONTRATOS = 1800;
-if (grupoPag.contratos && grupoPag.contratos.total > 2000) {
-  const g = grupoPag.contratos;
-  g.ate = Math.max(g.ate, Math.floor(Math.max(0, g.total - CAUDA_CONTRATOS) / g.take) * g.take);
+for (const g of Object.values(grupoPag)) {
+  if (g.pre === 'contratos' && g.total > 2000) g.ate = Math.max(g.ate, Math.floor(Math.max(0, g.total - CAUDA_CONTRATOS) / g.take) * g.take);
 }
 const extras = [];
-for (const pre of Object.keys(grupoPag)) {
-  const g = grupoPag[pre];
+const vezes = {};
+for (const g of Object.values(grupoPag)) {
+  const n = vezes[g.pre] = (vezes[g.pre] || 0) + 1;
+  const sufixo = n > 1 ? 'g' + n : '';
   for (let s = g.ate; s < g.total && extras.length < PAGINAS_EXTRAS_MAX; s += g.take) {
-    extras.push({ json: { rotulo: pre + ':x' + s, url: g.url.replace(/([?&]skip=)\d+/, (m0, p1) => p1 + s), paginaExtra: true } });
+    extras.push({ json: { rotulo: g.pre + ':x' + s + sufixo, url: g.url.replace(/([?&]skip=)\d+/, (m0, p1) => p1 + s), paginaExtra: true } });
   }
 }
 

@@ -46,8 +46,9 @@ checar('mes.mes', 'ym', 'todas as secoes do mes');
 ['leads', 'agendadas', 'realizadas', 'matriculas'].forEach(c => checar('mes.' + c, 'num', 'Funil'));
 checarLista('mes.professores', { nome: 'str', realizadas: 'num', fechadas: 'num' }, 'Conversao por professor');
 checarLista('mes.planos', { nome: 'str', alunos: 'num', receita: 'num' }, 'Mix de planos');
-checar('mes.vendas_novas', 'num', 'Vendas do mes', true);
-checar('mes.vendas_renovacao', 'num', 'Vendas do mes', true);
+/* 11/11/2026: obrigatorios, como no painel desde 27/10 */
+checar('mes.vendas_novas', 'num', 'Vendas do mes');
+checar('mes.vendas_renovacao', 'num', 'Vendas do mes');
 
 /* Composicao da base */
 if (checar('base', 'obj', 'Composicao da base')) {
@@ -101,7 +102,8 @@ if (checar('detalhe', 'obj', 'metade do painel')) {
 
 /* Lista da EVO cortada: o numero sai menor sem nenhuma secao cair. */
 const avisosColeta = (calc.validacao && Array.isArray(calc.validacao.avisos)) ? calc.validacao.avisos : [];
-const truncados = avisosColeta.filter(a => String(a).indexOf('TRUNCADO') === 0);
+/* 11/11/2026: erro da EVO numa lista inteira (ex.: leads com erro 500) tambem avisa. */
+const truncados = avisosColeta.filter(a => String(a).indexOf('TRUNCADO') === 0 || String(a).indexOf('ERRO NA EVO') === 0);
 
 if (!problemas.length && !truncados.length) return [];
 const cfg = $('Configuração').first().json;
@@ -113,7 +115,7 @@ if (problemas.length) {
   L.push('');
 }
 if (truncados.length) {
-  L.push('Lista da EVO veio cortada — o número dessas seções sai menor do que é:', '');
+  L.push('Lista da EVO veio cortada ou com erro — o número dessas seções sai menor do que é:', '');
   truncados.slice(0, 6).forEach(p => L.push('• ' + p));
   L.push('');
 }
